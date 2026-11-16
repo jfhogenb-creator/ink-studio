@@ -675,7 +675,7 @@
     </label>
     <div class="ex-actions">
       <button type="button" class="btn btn-outline-secondary" id="exRecord"><i></i>Record video</button>
-      <button type="button" class="btn btn-primary" id="exSave">Save PNG</button>
+      <button type="button" class="btn btn-primary" id="exSave">Save picture</button>
     </div>
   </div>
 </div>
@@ -1749,8 +1749,7 @@ $('record').onclick = () => {
   const label = $('record').lastChild, clock = () => { const t = Math.floor((performance.now() - t0) / 1000); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   mr.onstop = () => {
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, { type })); a.download = 'ink-video.' + (type.includes('mp4') ? 'mp4' : 'webm');
-    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    deliver(new Blob(chunks, { type: type.split(';')[0] }), 'ink-video.' + (type.includes('mp4') ? 'mp4' : 'webm'));
   };
   rec = {
     draw() {   // the round canvas has see-through corners; video has no transparency, so it sits on a sheet of paper colour
@@ -1853,10 +1852,20 @@ $('export').onclick = openExport; $('exClose').onclick = closeExport;
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('exportView').hidden) closeExport(); });
 $('exChange').onclick = () => { closeExport(); $('mode').value = 'canvas'; $('mode').dispatchEvent(new Event('change')); sideBoxes('canvas').forEach(c => setBox(c, c.id === 'g-size')); };
 $('exRecord').onclick = () => { closeExport(); if (!rec) $('record').click(); };
-$('exSave').onclick = async () => {
-  const [w, h] = out[shape], a = document.createElement('a'); a.href = URL.createObjectURL(await buildExport());
-  a.download = shape === 'round' ? `ink-profile-${w}.png` : `ink-${w}x${h}.png`;
+// Hand a finished picture or video to the person. On phones and tablets that means the system's share sheet
+// (Save Image, AirDrop, Messages, Instagram...); everywhere else, and whenever sharing isn't possible, a normal download.
+async function deliver(blob, name) {
+  const file = new File([blob], name, { type: blob.type });
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }   // closed without choosing: nothing to do. Any other failure falls through to a download
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('exSave').onclick = async () => {
+  const [w, h] = out[shape];
+  deliver(await buildExport(), shape === 'round' ? `ink-profile-${w}.png` : `ink-${w}x${h}.png`);
 };
 addEventListener('resize', () => { overlayDirty = true; });
 
