@@ -32,7 +32,7 @@
       radial-gradient(800px 700px at 70% 95%, rgba(80,110,255,.10), transparent 60%), var(--bg); }
   main { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 32px; position: relative; }
   #stage {
-    position: relative; aspect-ratio: 1; width: min(calc(100vh - 210px), calc(100vw - 470px)); margin-top: -10px;
+    position: relative; aspect-ratio: var(--ar, 1); width: min(calc((100vh - 210px) * var(--ar, 1)), calc(100vw - 470px)); margin-top: -10px;
     border-radius: 50%; touch-action: none; cursor: crosshair;
     background: repeating-conic-gradient(#1c1c20 0 25%, #151518 0 50%) 0 0 / 24px 24px;
     box-shadow: 0 0 0 1px var(--hair), 0 0 0 10px rgba(var(--w),.025), 0 50px 120px rgba(0,0,0,.6);
@@ -65,7 +65,8 @@
   #tools button:hover { background: var(--fill); color: var(--text); }
   #tools button.on { background: var(--strong); color: var(--on-strong); }
   #tools svg, #shrink svg, #grow svg, #exClose svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-  #shrink, #grow { display: none; }
+  #shrink, #grow, #tools #guideBtn, .preset-select { display: none; }
+  #guideBtn.on { background: var(--fill-2) !important; color: var(--text) !important; }
   /* full-screen export */
   #exportView { position: fixed; inset: 0; z-index: 200; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   #exportView[hidden] { display: none; }
@@ -81,7 +82,9 @@
   .ex-sizes button em { display: block; border: 1.5px solid var(--muted); border-radius: 3px; }
   .ex-sizes button b { display: block; font-size: .78rem; font-weight: 600; line-height: 1.2; } .ex-sizes button small { font: 400 .625rem var(--mono); color: var(--faint); }
   .ex-sizes button.on { background: var(--strong); color: var(--on-strong); } .ex-sizes button.on em { border-color: currentColor; } .ex-sizes button.on small { color: inherit; opacity: .65; }
-  .ex-actions { display: flex; gap: 8px; margin-top: 4px; }
+  #exFilter fieldset { display: grid; gap: 10px; } #exportView .sub { margin: 4px 0 -4px; }
+  .ex-wh { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap !important; } .ex-wh input { width: 92px; text-align: center; } .ex-wh i { font-style: normal; color: var(--faint); }
+  .ex-actions { display: flex; gap: 8px; position: sticky; bottom: 0; z-index: 2; margin: 0 -16px calc(-20px - env(safe-area-inset-bottom)); padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--hair); }   /* Save and Record stay in reach while the rest scrolls */
   .ex-actions .btn { flex: 1; padding: 12px; border-radius: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   #exRecord i { width: 11px; height: 11px; border-radius: 50%; background: #e5252a; }
   @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,31,0); } 30% { box-shadow: 0 0 0 5px rgba(255,90,31,.55); } }
@@ -297,17 +300,22 @@
     #export { display: none; }                     /* Export is the third tab down here */
     /* canvas */
     main { order: 1; flex: none; padding: 4px 16px 0; align-items: flex-start; }
-    #stage { width: min(calc(100vw - 32px), calc(100dvh - 440px)); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
+    #stage { width: min(calc(100vw - 32px), calc((100dvh - 440px) * var(--ar, 1))); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
     #toolbar, #keys { display: none; }
-    #frozenBadge { top: auto; bottom: 10px; }
+    #frozenBadge { top: auto; bottom: 10px; z-index: 7; white-space: nowrap; }
     #guide { position: static; transform: none; flex: 0 1 auto; min-width: 0; max-width: none; padding: 3px; gap: 4px; background: var(--fill); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
     #tools { left: 6px; top: 2px; padding: 4px; gap: 2px; }
     #tools button { width: 34px; height: 34px; }
+    #tools #guideBtn { display: grid; margin-top: 8px; }   /* the Guides switch from the desktop toolbar, as a button, set a little apart from the tools */
+    /* presets: one dropdown instead of rows of chips */
+    [data-presets] { padding: 6px 6px 6px 8px; border-radius: 14px; }
+    [data-presets] .chips, [data-presets] .pal-head > span:not(.tools) { display: none; }
+    [data-presets] .preset-select { display: block; flex: 1; min-width: 0; margin-right: 6px; background-color: var(--pop); }
     #shrink { display: grid; place-items: center; order: 1; margin-left: auto; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); padding: 0; }
     /* full-screen drawing: the sheet and tab bar step aside, the canvas takes the room */
     body.full .panel-scroll, body.full .mode-tabs { display: none; }
     body.full main { flex: 1; align-items: center; }
-    body.full #stage { width: min(calc(100vw - 32px), calc(100dvh - 150px)); }
+    body.full #stage { width: min(calc(100vw - 32px), calc((100dvh - 150px) * var(--ar, 1))); }
     body.full #grow { display: inline-flex; align-items: center; gap: 6px; }
     body.full .panel-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
     #guide #stepText span { display: none; }   /* no room for the instruction */
@@ -337,7 +345,7 @@
     .mode-tabs { order: 4; flex: none; background: var(--pop); border: 0; border-top: 1px solid var(--hair); padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
     .mode-tabs p { display: none; }
     .mode-tabs .segc { background: transparent; padding: 0; gap: 6px; }
-    .mode-tabs .segc button { padding: 12px 8px; border-radius: 14px; font-size: .9375rem; }
+    .mode-tabs .segc button { padding: 12px 4px; border-radius: 14px; font-size: .9375rem; }
   }
   /* iPhone zooms the whole page when a field with text smaller than 16px gets focus, and doesn't zoom back. Keep fields at 16px on phones and touch screens. */
   @media (max-width: 900px), (pointer: coarse) {
@@ -356,6 +364,7 @@
     <button type="button" data-tool="brush" title="Brush: paint ink (B)"><svg viewBox="0 0 16 16"><path d="M13.6 2.4c-2.6 1.3-5.3 4-6.6 6.3l1.6 1.6c2.3-1.3 5-4 6.3-6.6.3-.9-.4-1.6-1.3-1.3zM6.6 9.3c-1.5-.1-2.6.9-2.8 2.2-.1.9-.7 1.5-1.6 1.8 1.9 1 4.9.6 5.6-1.6.2-.6.1-1.2-.2-1.7z"/></svg></button>
     <button type="button" data-tool="smudge" title="Smudge: push the ink around without adding any (S)"><svg viewBox="0 0 16 16"><path d="M2 5.5c2-2 3.5-2 5.500 0s3.500 2 6 0M2 10.500c2-2 3.500-2 5.500 0s3.500 2 6 0"/></svg></button>
     <button type="button" data-tool="erase" title="Eraser: wipe ink away where you drag (E)"><svg viewBox="0 0 16 16"><path d="M9.300 2.700 13.300 6.700 7 13H4.500L2.700 11.200a1 1 0 0 1 0-1.400zM6.200 5.800l4 4M7 13h6.500"/></svg></button>
+    <button type="button" id="guideBtn" title="Guides: show the letter outlines on the canvas (never exported)"><svg viewBox="0 0 16 16"><path d="M1.500 8s2.400-4.500 6.500-4.500S14.500 8 14.500 8s-2.400 4.500-6.500 4.500S1.500 8 1.500 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
   </div>
   <span id="frozenBadge">Ink frozen · Space to continue</span>
   <div id="stage">
@@ -367,7 +376,7 @@
     <div id="stepText"><small></small><b></b><span></span></div>
     <button type="button" id="stepNext" class="btn btn-sm btn-primary"></button>
   </div>
-  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V move · B brush · S smudge · E erase · F export</p>
+  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V move · B brush · S smudge · E erase · A animate · F export</p>
   <div id="err">This browser can't run the simulation (WebGL 2 with float textures is required).</div>
 </main>
 
@@ -382,6 +391,7 @@
     <select id="mode" class="seg">
       <option value="arrange" selected title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
       <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
+      <option value="animate" title="How the ink moves, and what Play does. (A)">Animate</option>
       <option value="finish" title="Choose a size and save your picture or a video. (F)">Export</option>
     </select>
     <p id="modeNote"></p>
@@ -442,8 +452,8 @@
         </fieldset></div></div>
       </div>
 
-      <div class="accordion-item" data-side="paint">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-motion"><span class="step"></span>Animate<small class="hint">curl, momentum, gravity</small></button></h2>
+      <div class="accordion-item" data-side="animate">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-motion"><span class="step"></span>Motion<small class="hint">curl, momentum, gravity</small></button></h2>
         <div id="g-motion" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
           <div data-presets="animate"></div>
           <label class="ctl" title="How much the ink curls into small swirls">Curl <input type="range" class="form-range" id="swirl" min="0" max="50" step="1" value="0"></label>
@@ -455,11 +465,16 @@
             <label class="ctl" data-when="grav" title="Which way gravity pulls: 0° is down, 180° is up">Direction <input type="range" class="form-range" id="gravDir" min="0" max="360" step="5" value="0" data-unit="°"></label>
             <label class="ctl" title="Ink slowly disappears">Fade <input type="range" class="form-range" id="fade" min="0" max="1" step="0.01" value="0"></label>
           </div></details>
-          <p class="sub">While playing</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="animate">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-play"><span class="step"></span>Play<small class="hint">how many, how fast, which inks</small></button></h2>
+        <div id="g-play" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
           <div class="ctl" title="Each puff uses the next ink in your tray">Flip through inks <span class="form-check form-switch m-0 p-0"><input class="form-check-input m-0" type="checkbox" role="switch" id="dripCycle"></span></div>
           <label class="ctl" title="How many puffs are shot in at a time">How many <input type="range" class="form-range" id="dripCount" min="1" max="8" step="1" value="1" data-unit="×"></label>
           <label class="ctl" title="How quickly the puffs follow each other">How fast <input type="range" class="form-range" id="dripRate" min="0" max="1" step="0.01" value="0.4"></label>
-          <p class="note">Play, next to Freeze below, keeps shooting puffs of ink in from the edge.</p>
+          <p class="note">Play, next to Freeze, keeps shooting puffs of ink in from the edge. These set what it shoots.</p>
         </fieldset></div></div>
       </div>
 
@@ -582,19 +597,19 @@
     <div class="ex-head"><h2>Export</h2><button type="button" id="exClose" title="Back to drawing (Esc)"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
     <div class="ex-prev"><img id="exImg" alt="Preview of the exported picture"></div>
     <p class="ex-meta" id="exMeta"></p>
-    <div class="ex-sizes" id="exSizes"></div>
     <div class="ctl">Canvas
-      <select id="canvasShape" class="seg" title="Shape of the canvas and of the exported picture">
+      <select id="canvasShape" class="seg" title="Shape and size of the canvas. What you see is exactly what is exported.">
         <option value="round">Round</option>
         <option value="square">Square</option>
+        <option value="rect">Frame</option>
       </select>
     </div>
-    <div class="ctl" id="exFitRow">Frame
-      <select id="exFit" class="seg">
-        <option value="paper" title="The drawing sits in the middle of a sheet in your paper colour">On paper</option>
-        <option value="fill" title="The drawing is enlarged until it covers the whole frame; the edges are cropped">Fill the frame</option>
-      </select>
+    <div class="ex-sizes" id="exSizes"></div>
+    <div class="ctl" id="exCustom">Your own
+      <span class="ex-wh"><input type="number" class="form-control form-control-sm" id="exW" min="200" max="4096" step="1" inputmode="numeric" aria-label="Width in pixels"><i>×</i><input type="number" class="form-control form-control-sm" id="exH" min="200" max="4096" step="1" inputmode="numeric" aria-label="Height in pixels"><i>px</i></span>
     </div>
+    <p class="sub">Filter</p>
+    <div id="exFilter"></div>
     <label class="ctl">Video
       <select id="recLength" class="form-select form-select-sm" title="When a recording finishes">
         <option value="0" selected>Until I press stop</option>
@@ -609,19 +624,6 @@
       <button type="button" class="btn btn-outline-secondary" id="exRecord"><i></i>Record video</button>
       <button type="button" class="btn btn-primary" id="exSave">Save PNG</button>
     </div>
-    <select id="exportSize" hidden>
-      <option value="round:1024|profile" data-g="Profile">Profile · 1024</option>
-      <option value="round:2048|profile-large" data-g="Profile">Profile, large · 2048</option>
-      <option value="rect:1080x1080|square" data-g="Square 1:1">Post · 1080 × 1080</option>
-      <option value="rect:2160x2160|square-large" data-g="Square 1:1">Large · 2160 × 2160</option>
-      <option value="rect:1920x1080|full-hd" data-g="Wide 16:9">Full HD · 1920 × 1080</option>
-      <option value="rect:3840x2160|4k" data-g="Wide 16:9">4K · 3840 × 2160</option>
-      <option value="rect:1280x720|youtube-thumbnail" data-g="Wide 16:9">YouTube thumbnail · 1280 × 720</option>
-      <option value="rect:1080x1920|story" data-g="Tall 9:16">Story / Reel · 1080 × 1920</option>
-      <option value="rect:1080x1350|portrait" data-g="Portrait 4:5">Portrait post · 1080 × 1350</option>
-      <option value="rect:1500x500|x-header" data-g="Banner">X header · 1500 × 500</option>
-      <option value="rect:1584x396|linkedin-banner" data-g="Banner">LinkedIn banner · 1584 × 396</option>
-    </select>
   </div>
 </div>
 
@@ -762,9 +764,10 @@ void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.,1.); }`;
 const HEAD = `#version 300 es
 precision highp float; precision highp sampler2D;
 in vec2 vUv; out vec4 o;
-uniform sampler2D uObs; uniform vec2 uTexel; uniform float uSquare;
-// distance to the canvas edge: a circle, or a square when uSquare is on (0.5 = the edge)
-float rim(vec2 uv){ vec2 p = abs(uv - .5); return uSquare > .5 ? max(p.x, p.y) : length(p); }
+uniform sampler2D uObs; uniform vec2 uTexel, uHalf; uniform float uSquare;
+// distance to the canvas edge (0.5 = the edge): a circle, or a frame when uSquare is on. The ink always lives in a square;
+// uHalf is half the frame's width and height inside it (0.5, 0.5 = the whole square), so a wide or tall frame is a band of that square.
+float rim(vec2 uv){ vec2 p = abs(uv - .5); return uSquare > .5 ? max(p.x * .5 / uHalf.x, p.y * .5 / uHalf.y) : length(p); }
 float solid(vec2 uv){ return max(step(0.492, rim(uv)), step(0.5, texture(uObs, uv).r)); }
 `;
 const DYE_FN = `    uniform sampler2D uDist; uniform vec3 uHaloInk; uniform float uHaloOn, uReach, uSoft, uLBlob, uHaloAmt, uSpeck;
@@ -899,7 +902,9 @@ const SRC = {
       o = vec4((dyeAt(cu) * 2. + dyeAt(cu + vec2(e, e)) + dyeAt(cu + vec2(-e, e)) + dyeAt(cu + vec2(e, -e)) + dyeAt(cu - vec2(e, e))) / 6.,
         uLBlob * (1. - smoothstep(0., .6 / uCells, texture(uDist, cu).r)));   // alpha: how much of this cell is letter
     }`,
-  display: `uniform sampler2D uDye, uCell; uniform vec3 uPaper, uLetter, uFCol;
+  display: `vec2 sUv; vec2 screenUv(){ return vUv; }
+#define vUv sUv
+    uniform sampler2D uDye, uCell; uniform vec3 uPaper, uLetter, uFCol;
     uniform float uMode, uPx, uShape, uCells, uBlob, uGoo, uRound, uSolid, uFilter, uFAmt, uGrain;
     vec3 inkCol(vec3 d){ return uMode < .5 ? uPaper * exp(-d) : uPaper + (1. - uPaper) * (1. - exp(-d)); }
     ${DYE_FN}
@@ -934,6 +939,7 @@ const SRC = {
     }
     float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
     void main(){
+      sUv = .5 + (screenUv() - .5) * 2. * uHalf;   // from here on vUv means: where in the ink square this pixel of the frame looks
       vec2 uv = vUv; vec3 col; vec2 p = vUv - .5; float rr = length(p), ang = atan(p.y, p.x);
       if (uFilter == 1.) {            // halftone
         float cells = mix(150., 28., uFAmt);
@@ -1022,7 +1028,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 function run(p, target, u) {
   gl.useProgram(p.prog);
   let unit = 0;
-  u.uObs = obsTex; u.uSquare = square ? 1 : 0;
+  u.uObs = obsTex; u.uSquare = square ? 1 : 0; u.uHalf = half;
   for (const k in u) {
     const loc = p.u[k]; if (!loc) continue; const v = u[k];
     if (v instanceof WebGLTexture) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, v); gl.uniform1i(loc, unit++); }
@@ -1163,16 +1169,17 @@ function addLetter(text, x = .5, y = .5) {
 }
 function drawOverlay() {
   const r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-  const W = Math.round(r.width * dpr);
-  if (overlay.width !== W) overlay.width = overlay.height = W;
+  const PW = Math.round(r.width * dpr), PH = Math.round(r.height * dpr);
+  if (overlay.width !== PW || overlay.height !== PH) { overlay.width = PW; overlay.height = PH; }
+  const W = PW / (2 * half[0]), ox = (PW - W) / 2, oy = (PH - W) / 2;   // W: the whole ink square in pixels; the frame shows its middle
   const c = overlay.getContext('2d');
-  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, W);
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PW, PH);
   const arrange = $('mode').value === 'arrange', guides = $('guides').checked || arrange;
   const flash = Math.max(0, (flashUntil - performance.now()) / 900);
   for (const l of letters) {
     if (l.hidden && l !== selected) continue;
     c.setTransform(1, 0, 0, 1, 0, 0);
-    c.translate(l.x * W, l.y * W); c.rotate(l.rot * Math.PI / 180);
+    c.translate(ox + l.x * W, oy + l.y * W); c.rotate(l.rot * Math.PI / 180);
     const w = (l.w + .03) * W, h = (l.h + .03) * W, sel = l === selected;
     if (guides) {
       // guide outline of the true letter shape: dark under white, so it shows on any colour. Never exported.
@@ -1233,12 +1240,12 @@ function flushSplats() {
 }
 function fireJet(i) {
   const a = Math.random() * Math.PI * 2, j = (Math.random() - .5) * 1.1;
-  jets.push({ x: .5 + .41 * Math.cos(a), y: .5 + .41 * Math.sin(a), dx: -Math.cos(a + j), dy: -Math.sin(a + j),
+  jets.push({ x: .5 + .82 * half[0] * Math.cos(a), y: .5 + .82 * half[1] * Math.sin(a), dx: -Math.cos(a + j), dy: -Math.sin(a + j),
     color: i ?? Math.floor(Math.random() * inkCount), life: .28 });
 }
 
 /* ---------- simulation ---------- */
-let frozen = false, dripTimer = 0, dripSlot = -1, square = false;
+let frozen = false, dripTimer = 0, dripSlot = -1, square = false, shape = 'round', half = [.5, .5];   // half: see rim() in the shader head
 function step(dt) {
   if ($('drips').checked && (dripTimer -= dt) <= 0) {   // auto drips always shoot the ink selected under Paint with
     for (let i = +$('dripCount').value; i > 0; i--) fireJet($('dripCycle').checked ? (dripSlot = (dripSlot + 1) % inkCount) : slot);   // each puff the next ink, or always the selected one
@@ -1285,7 +1292,7 @@ function render() {
   const pixels = $('shape').value !== 'smooth', cells = 1 / +$('pixel').value;
   if (pixels) run(P.cells, cellT, { uDye: dye.read.tex, uCells: cells, ...halo });
   run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: hex($('letterColor').value),
-    uMode: $('blend').value === 'ink' ? 0 : 1, uPx: 1.5 / canvas.width,
+    uMode: $('blend').value === 'ink' ? 0 : 1, uPx: 1.5 * 2 * half[0] / canvas.width,
     uShape: $('shape').value === 'smooth' ? 0 : 1, uCells: 1 / +$('pixel').value, uBlob: +$('blob').value,
     uGoo: +$('goo').value, uRound: +$('round').value, uSolid: 1,
     uFilter: +$('filter').value, uFAmt: +$('famt').value, uFCol: hex($('fcol').value), uGrain: +$('grain').value });
@@ -1305,7 +1312,8 @@ function frame(now) {
 
 /* ---------- pointer ---------- */
 let ptr = null, tool = 'move';   // tool: what a drag on the canvas does (move letters, brush, smudge, erase)
-const pos = e => { const r = stage.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+const pos = e => { const r = stage.getBoundingClientRect();   // a point on screen, as a place in the ink square
+  return [.5 + ((e.clientX - r.left) / r.width - .5) * 2 * half[0], .5 + ((e.clientY - r.top) / r.height - .5) * 2 * half[1]]; };
 stage.addEventListener('pointerdown', e => {
   const [x, y] = pos(e); stage.setPointerCapture(e.pointerId);
   if (tool === 'move') {
@@ -1323,7 +1331,7 @@ stage.addEventListener('pointermove', e => {
   if (!ptr) { const h = tool !== 'move' ? null : hit(...pos(e)); stage.style.cursor = tool === 'move' ? (h ? (h.locked ? 'pointer' : 'grab') : 'default') : 'crosshair'; return; }
   const [x, y] = pos(e), dx = x - ptr.x, dy = y - ptr.y, f = FORCE * +$('force').value;
   if (ptr.mode === 'letter') {
-    const l = ptr.l; l.x = Math.min(.95, Math.max(.05, l.x + dx)); l.y = Math.min(.95, Math.max(.05, l.y + dy));
+    const l = ptr.l, mx = half[0] - .05, my = half[1] - .05; l.x = Math.min(.5 + mx, Math.max(.5 - mx, l.x + dx)); l.y = Math.min(.5 + my, Math.max(.5 - my, l.y + dy));
     obsDirty = true;
     const r = Math.max(l.w, l.h) * .5;
     splat(l.x, 1 - l.y, dx * f * .6, -dy * f * .6, null, r * r, r * r);
@@ -1474,7 +1482,12 @@ function presetBox(name, defs, apply, random, defaults, watch) {
   // a chip is lit whenever the controls actually hold its values, however they got there
   const holds = v => Object.entries({ ...defaults, ...v }).every(([id, val]) => { const el = $(id);
     return !watch.includes(id) || (typeof val === 'number' ? Math.abs(+el.value - val) <= (+el.step || 0) / 2 + 1e-6 : String(el.value) === String(val)); });
-  const sync = () => { let lit = false; [...chips.children].forEach(b => { const on = !lit && holds(b.preset); b.classList.toggle('on', on); lit ||= on; }); };
+  // on phones the chips are swapped for this dropdown (see the phone styles); it presses the chip of the same name
+  const sel = document.createElement('select'); sel.className = 'form-select form-select-sm preset-select'; sel.title = 'Presets';
+  sel.innerHTML = '<option value="">Presets</option>' + Object.keys(defs).map(l => `<option>${l}</option>`).join('');
+  sel.onchange = () => [...chips.children].find(b => b.textContent === sel.value)?.click();
+  head.prepend(sel);
+  const sync = () => { let lit = ''; [...chips.children].forEach(b => { const on = !lit && holds(b.preset); b.classList.toggle('on', on); if (on) lit = b.textContent; }); sel.value = lit; };
   Object.entries(defs).forEach(([label, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.preset = v; b.onclick = () => { apply({ ...defaults, ...v }); sync(); }; chips.append(b); });
   const [dice, reset] = head.querySelectorAll('button');
   dice.onclick = () => { apply({ ...defaults, ...random() }); sync(); };
@@ -1549,20 +1562,23 @@ const syncMode = () => {
   const m = lastMode = $('mode').value; ptr = null; overlayDirty = true;
   setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);
   document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
-  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush, movement and filter. Drag on the canvas to paint.' }[m];
+  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
   document.querySelector('.panel-scroll').scrollTop = 0;
 };
 // tools and tabs stay in step: Move belongs to the Letter tab, the other three to Ink
 function setTool(t, fromMode) {
-  tool = t; ptr = null; document.querySelectorAll('#tools button').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  tool = t; ptr = null; document.querySelectorAll('#tools button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
   stage.style.cursor = t === 'move' ? 'default' : 'crosshair';
-  const want = t === 'move' ? 'arrange' : 'paint';
-  if (!fromMode && $('mode').value !== want) { $('mode').value = want; $('mode').dispatchEvent(new Event('change')); }
+  const m = $('mode').value, want = t === 'move' ? 'arrange' : m === 'arrange' ? 'paint' : m;   // painting tools work on the Ink and Animate tabs alike
+  if (!fromMode && m !== want) { $('mode').value = want; $('mode').dispatchEvent(new Event('change')); }
 }
-document.querySelectorAll('#tools button').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+document.querySelectorAll('#tools button[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+const syncGuideBtn = () => $('guideBtn').classList.toggle('on', $('guides').checked);
+$('guideBtn').onclick = () => { $('guides').checked = !$('guides').checked; $('guides').dispatchEvent(new Event('change', { bubbles: true })); };
+$('guides').addEventListener('change', syncGuideBtn); syncGuideBtn();
 $('mode').addEventListener('change', syncMode); syncMode();
 $('guides').addEventListener('change', () => { overlayDirty = true; });
-$('canvasShape').addEventListener('change', () => { square = $('canvasShape').value === 'square'; stage.classList.toggle('square', square); });
+
 // the steps jump to the matching part of the panel; on a phone they live at the top of the panel instead of under the canvas
 const phone = matchMedia('(max-width: 900px)');
 // one box open, or closed, without Bootstrap's fold animation
@@ -1591,7 +1607,7 @@ const STEPS = [
   ['arrange', 'g-type', 'Choose a typeface', 'Typeface', 'Pick a font, then set its size and rotation.'],
   ['paint', 'g-canvas', 'Pick your colours', 'Colours', 'Choose a palette and how many inks you want.'],
   ['paint', 'g-ink', 'Set the brush', 'Brush', 'Try a preset, then adjust size and texture.'],
-  ['paint', 'g-motion', 'Paint, or press Play', 'Paint', 'Drag on the canvas, or let Play shoot puffs of ink.'],
+  ['animate', 'g-motion', 'Paint, or press Play', 'Animate', 'Drag on the canvas, or let Play shoot puffs of ink, and set how it moves.'],
   ['finish', null, 'Export', 'Export', 'Choose a size, then save a PNG or record a video.'],
 ];
 let stepAt = -1;   // -1: not started
@@ -1635,6 +1651,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase(), t = { b: 'brush', v: 'move', s: 'smudge', e: 'erase' }[k];
   if (t) setTool(t);
   if (k === 'f') openExport();
+  if (k === 'a') { $('mode').value = 'animate'; $('mode').dispatchEvent(new Event('change')); }
 });
 addEventListener('keydown', e => {
   const a = document.activeElement;
@@ -1648,7 +1665,7 @@ addEventListener('keydown', e => {
 $('record').onclick = () => {
   if (rec) { rec.stop(); return; }
   if (!window.MediaRecorder) { alert('This browser cannot record video.'); return; }
-  const S = 1080, c = document.createElement('canvas'), x = c.getContext('2d'); c.width = c.height = S;
+  const even = n => Math.round(n / 2) * 2, c = document.createElement('canvas'), x = c.getContext('2d'); c.width = even(1080 * 2 * half[0]); c.height = even(1080 * 2 * half[1]);   // 1080 on the longer side
   const type = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
   const mr = new MediaRecorder(c.captureStream(60), { mimeType: type, videoBitsPerSecond: 12e6 }), chunks = [], t0 = performance.now(), limit = +$('recLength').value;
   const label = $('record').lastChild, clock = () => { const t = Math.floor((performance.now() - t0) / 1000); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
@@ -1659,7 +1676,7 @@ $('record').onclick = () => {
   };
   rec = {
     draw() {   // the round canvas has see-through corners; video has no transparency, so it sits on a sheet of paper colour
-      x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, S, S); x.drawImage(canvas, 0, 0, S, S);
+      x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, c.width, c.height); x.drawImage(canvas, 0, 0, c.width, c.height);
       label.textContent = clock();
       if (limit && performance.now() - t0 >= limit * 1000) rec.stop();
     },
@@ -1672,55 +1689,68 @@ $('pause').onclick = () => {
   frozen = !frozen;
   $('pause').firstChild.textContent = frozen ? 'Unfreeze ' : 'Freeze '; $('pause').classList.toggle('active', frozen);
   stage.classList.toggle('frozen', frozen);
+  $('frozenBadge').textContent = matchMedia('(max-width: 900px), (pointer: coarse)').matches ? 'Ink frozen · tap Unfreeze to continue' : 'Ink frozen · Space to continue';
   $('frozenBadge').style.display = frozen ? 'block' : 'none';
 };
 $('clear').onclick = () => {
   for (const t of [dye.read, dye.write, dye2.read, dye2.write, vel.read, vel.write, prs.read, prs.write]) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.clear(gl.COLOR_BUFFER_BIT); }
   jets.length = 0;
 };
-function snapshot(S) {
-  const old = canvas.width;
-  canvas.width = canvas.height = S; render();
+function snapshot(w, h) {   // a PNG of the canvas: w by h pixels, or with one number its longer side
+  if (!h) { const S = w; w = Math.round(S * 2 * half[0]); h = Math.round(S * 2 * half[1]); }
+  const ow = canvas.width, oh = canvas.height;
+  canvas.width = w; canvas.height = h; render();
   const p = new Promise(r => canvas.toBlob(r, 'image/png'));
-  canvas.width = canvas.height = old; render();
+  canvas.width = ow; canvas.height = oh; render();
   return p;
 }
-// round: a circle with see-through corners. rect: the drawing on a sheet of paper colour at the chosen size, centred or enlarged to fill it.
-async function buildExport(scale = 1) {
-  const [spec, name] = $('exportSize').value.split('|'), [kind, dim] = spec.split(':');
-  if (kind === 'round') return { blob: await snapshot(Math.round(+dim * scale)), name, dim };
-  const [w, h] = dim.split('x').map(n => Math.round(n * scale)), fill = $('exFit').value === 'fill';
-  const D = fill ? Math.max(w, h) : Math.round(Math.min(w, h) * .86);
-  const art = await createImageBitmap(await snapshot(Math.min(2048, D))), c = document.createElement('canvas'); c.width = w; c.height = h;
-  const x = c.getContext('2d'); x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, w, h); x.imageSmoothingQuality = 'high'; x.drawImage(art, (w - D) / 2, (h - D) / 2, D, D);
-  return { blob: await new Promise(r => c.toBlob(r, 'image/png')), name, dim };
+// The canvas is what gets exported: a round or square picture, or a frame of any size. Each shape remembers its size.
+const SIZES = {
+  round: [['Profile', 1024, 1024], ['Profile, large', 2048, 2048]],
+  square: [['Post', 1080, 1080], ['Large', 2160, 2160]],
+  rect: [['Full HD · 16:9', 1920, 1080], ['Story · 9:16', 1080, 1920], ['Portrait · 4:5', 1080, 1350], ['Classic · 4:3', 1600, 1200]],
+};
+const out = { round: [1024, 1024], square: [1080, 1080], rect: [1920, 1080] };
+function setCanvas() {
+  shape = $('canvasShape').value; square = shape !== 'round';
+  const [w, h] = out[shape], ar = w / h;
+  half = ar >= 1 ? [.5, .5 / ar] : [.5 * ar, .5];
+  stage.classList.toggle('square', square); stage.style.setProperty('--ar', ar);
+  canvas.width = Math.round(1024 * 2 * half[0]); canvas.height = Math.round(1024 * 2 * half[1]);
+  for (const l of letters) { l.x = Math.min(.45 + half[0], Math.max(.55 - half[0], l.x)); l.y = Math.min(.45 + half[1], Math.max(.55 - half[1], l.y)); }   // keep letters inside the frame
+  obsDirty = overlayDirty = true;
+  // the export screen follows
+  $('exSizes').replaceChildren(...SIZES[shape].map(([label, sw, sh]) => {
+    const k = 30 / Math.max(sw, sh), b = document.createElement('button'); b.type = 'button'; b.classList.toggle('on', sw === w && sh === h);
+    b.innerHTML = `<em style="width:${sw * k}px;height:${sh * k}px${shape === 'round' ? ';border-radius:50%' : ''}"></em><span><b>${label}</b><small>${shape === 'round' ? sw : sw + ' × ' + sh}</small></span>`;
+    b.onclick = () => { out[shape] = [sw, sh]; setCanvas(); };
+    return b;
+  }));
+  $('exCustom').hidden = shape !== 'rect'; $('exW').value = w; $('exH').value = h;
+  $('exMeta').textContent = shape === 'round' ? `${w} × ${h} px · PNG with see-through corners` : `${w} × ${h} px · PNG`;
+  if (!$('exportView').hidden) refreshExport();
 }
+const typed = () => { const n = el => Math.min(4096, Math.max(200, Math.round(+el.value) || 1080)); out.rect = [n($('exW')), n($('exH'))]; setCanvas(); };
+$('exW').onchange = $('exH').onchange = typed;
+$('canvasShape').addEventListener('change', setCanvas);
+const buildExport = (scale = 1) => { const [w, h] = out[shape]; return snapshot(Math.round(w * scale), Math.round(h * scale)); };
 let exUrl = null, exBusy = 0;
 async function refreshExport() {
-  const opt = $('exportSize').selectedOptions[0], [kind, dim] = opt.value.split('|')[0].split(':'), big = Math.max(...dim.split('x').map(Number));
-  document.querySelectorAll('#exSizes button').forEach(b => b.classList.toggle('on', b.dataset.v === opt.value));
-  $('exFitRow').hidden = kind === 'round';
-  $('exMeta').textContent = kind === 'round' ? `${dim} × ${dim} px · PNG with see-through corners` : `${dim.replace('x', ' × ')} px · PNG`;
-  const mine = ++exBusy, { blob } = await buildExport(Math.min(1, 720 / big));
+  const mine = ++exBusy, blob = await buildExport(Math.min(1, 720 / Math.max(...out[shape])));
   if (mine !== exBusy) return;   // a newer choice overtook this one
   if (exUrl) URL.revokeObjectURL(exUrl); $('exImg').src = exUrl = URL.createObjectURL(blob);
 }
-function openExport() { $('exportView').hidden = false; closePicker?.(); refreshExport(); }
-const closeExport = () => { $('exportView').hidden = true; };
-[...$('exportSize').options].forEach(o => {   // one card per size, with a little frame in its proportions
-  const [kind, dim] = o.value.split('|')[0].split(':'), [w, h] = kind === 'round' ? [1, 1] : dim.split('x').map(Number), k = 30 / Math.max(w, h), [label, px] = o.text.split(' · ');
-  const b = document.createElement('button'); b.type = 'button'; b.dataset.v = o.value;
-  b.innerHTML = `<em style="width:${Math.max(8, w * k)}px;height:${Math.max(8, h * k)}px${kind === 'round' ? ';border-radius:50%' : ''}"></em><span><b>${label}</b><small>${px}</small></span>`;
-  b.onclick = () => { $('exportSize').value = o.value; refreshExport(); };
-  $('exSizes').append(b);
-});
-$('exFit').addEventListener('change', refreshExport);
-$('canvasShape').addEventListener('change', () => { if (!$('exportView').hidden) refreshExport(); });
+// the Filter controls are the same ones as under Ink: they move onto the export screen while it is open, and back when it closes
+const filterBox = document.querySelector('#g-filter fieldset'), filterHome = filterBox.parentElement;
+function openExport() { $('exportView').hidden = false; closePicker?.(); $('exFilter').append(filterBox); refreshExport(); }
+const closeExport = () => { $('exportView').hidden = true; closePicker?.(); filterHome.append(filterBox); };
+$('exFilter').addEventListener('input', refreshExport); $('exFilter').addEventListener('change', refreshExport); $('exFilter').addEventListener('click', () => setTimeout(refreshExport));
 $('export').onclick = openExport; $('exClose').onclick = closeExport;
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('exportView').hidden) closeExport(); });
 $('exRecord').onclick = () => { closeExport(); if (!rec) $('record').click(); };
 $('exSave').onclick = async () => {
-  const { blob, name, dim } = await buildExport(), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ink-${name}-${dim}.png`;
+  const [w, h] = out[shape], a = document.createElement('a'); a.href = URL.createObjectURL(await buildExport());
+  a.download = shape === 'round' ? `ink-profile-${w}.png` : `ink-${w}x${h}.png`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
 addEventListener('resize', () => { overlayDirty = true; });
@@ -1731,7 +1761,7 @@ function loadFont(v) {
   return document.fonts.load(`${w} 48px ${fam}`).then(() => { obsDirty = true; }, () => {});
 }
 loadFont($('font').value);
-addLetter('A'); select(null);
+addLetter('A'); select(null); setCanvas();
 [1, 2, 0, 3].forEach(i => fireJet(i));
 window.__ink = { letters, fireJet, snapshot, applyPalette };
 requestAnimationFrame(frame);
