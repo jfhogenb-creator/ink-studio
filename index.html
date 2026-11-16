@@ -58,6 +58,32 @@
   #stepText span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
   #stepNext { flex: 0 0 auto; }
   #keys { position: absolute; bottom: 12px; left: 0; right: 0; margin: 0; text-align: center; color: var(--faint); font-size: .6875rem; }
+  /* tools: what a drag on the canvas does */
+  #tools { position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 4px; padding: 5px; border-radius: 999px; background: var(--glass); border: 1px solid var(--hair);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); z-index: 6; }
+  #tools button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; transition: background .15s, color .15s; }
+  #tools button:hover { background: var(--fill); color: var(--text); }
+  #tools button.on { background: var(--strong); color: var(--on-strong); }
+  #tools svg, #shrink svg, #grow svg, #exClose svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  #shrink, #grow { display: none; }
+  /* full-screen export */
+  #exportView { position: fixed; inset: 0; z-index: 200; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #exportView[hidden] { display: none; }
+  .ex-wrap { max-width: 560px; margin: 0 auto; padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+  .ex-head { display: flex; align-items: center; justify-content: space-between; }
+  .ex-head h2 { font: 600 1.25rem Geist, sans-serif; letter-spacing: -.02em; margin: 0; }
+  #exClose { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); display: grid; place-items: center; padding: 0; }
+  .ex-prev { height: min(42vh, 380px); display: grid; place-items: center; border-radius: 20px; background: repeating-conic-gradient(rgba(var(--w),.06) 0 25%, transparent 0 50%) 0 0 / 20px 20px; padding: 14px; }
+  .ex-prev img { max-width: 100%; max-height: calc(min(42vh, 380px) - 28px); display: block; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .ex-meta { margin: -4px 0 0; text-align: center; color: var(--faint); font: 400 .6875rem var(--mono); }
+  .ex-sizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .ex-sizes button { border: 0; border-radius: 16px; background: var(--fill); color: var(--text); padding: 10px; display: grid; gap: 8px; text-align: left; align-content: space-between; min-height: 92px; font: inherit; }
+  .ex-sizes button em { display: block; border: 1.5px solid var(--muted); border-radius: 3px; }
+  .ex-sizes button b { display: block; font-size: .78rem; font-weight: 600; line-height: 1.2; } .ex-sizes button small { font: 400 .625rem var(--mono); color: var(--faint); }
+  .ex-sizes button.on { background: var(--strong); color: var(--on-strong); } .ex-sizes button.on em { border-color: currentColor; } .ex-sizes button.on small { color: inherit; opacity: .65; }
+  .ex-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .ex-actions .btn { flex: 1; padding: 12px; border-radius: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  #exRecord i { width: 11px; height: 11px; border-radius: 50%; background: #e5252a; }
   @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,31,0); } 30% { box-shadow: 0 0 0 5px rgba(255,90,31,.55); } }
   .nudge { animation: nudge .9s ease-out 2; }
   #toolbar { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 5px 16px 5px 5px;
@@ -267,15 +293,25 @@
     /* top bar: name, light/dark, Export (moved here by placeParts) */
     .brand { order: 0; flex: none; padding: 10px 16px 8px; gap: 10px; }
     .brand p { display: none; }
-    .brand #export { margin-left: 0 !important; }
+    .brand > div:not(#guide) { display: none; }   /* the guide takes the title's place */
+    #export { display: none; }                     /* Export is the third tab down here */
     /* canvas */
     main { order: 1; flex: none; padding: 4px 16px 0; align-items: flex-start; }
     #stage { width: min(calc(100vw - 32px), calc(100dvh - 440px)); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
     #toolbar, #keys { display: none; }
     #frozenBadge { top: auto; bottom: 10px; }
-    #guide { top: -2px; bottom: auto; padding: 4px; gap: 6px; max-width: calc(100% - 24px); box-shadow: 0 6px 20px rgba(0,0,0,.16); background: var(--pop); }
+    #guide { position: static; transform: none; flex: 0 1 auto; min-width: 0; max-width: none; padding: 3px; gap: 4px; background: var(--fill); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+    #tools { left: 6px; top: 2px; padding: 4px; gap: 2px; }
+    #tools button { width: 34px; height: 34px; }
+    #shrink { display: grid; place-items: center; order: 1; margin-left: auto; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); padding: 0; }
+    /* full-screen drawing: the sheet and tab bar step aside, the canvas takes the room */
+    body.full .panel-scroll, body.full .mode-tabs { display: none; }
+    body.full main { flex: 1; align-items: center; }
+    body.full #stage { width: min(calc(100vw - 32px), calc(100dvh - 150px)); }
+    body.full #grow { display: inline-flex; align-items: center; gap: 6px; }
+    body.full .panel-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
     #guide #stepText span { display: none; }   /* no room for the instruction */
-    #stepText { padding: 0 2px 0 8px; }
+    #stepText { padding: 0 2px 0 8px; font-size: .8125rem; }
     #stepBack { width: 28px; height: 28px; }
     /* actions under the canvas: Play, Freeze, Record, Clear */
     .panel-foot { order: 2; flex: none; border: 0; padding: 12px 12px 10px; justify-content: center; gap: 8px; }
@@ -311,6 +347,12 @@
     <button class="btn btn-sm btn-outline-secondary" id="clear" type="button" title="Wipe all ink off the canvas. Letters stay. (Backspace)">Clear <kbd>⌫</kbd></button>
     <label class="guides"><span class="form-check form-switch m-0 p-0"><input class="form-check-input m-0" type="checkbox" role="switch" id="guides" checked></span>Guides</label>
   </div>
+  <div id="tools">
+    <button type="button" data-tool="move" title="Move: drag letters into place (V)"><svg viewBox="0 0 16 16"><path d="M8 1.8v12.4M1.8 8h12.4M8 1.8 6.2 3.6M8 1.8l1.8 1.8M8 14.2l-1.8-1.8M8 14.2l1.8-1.8M1.8 8l1.8-1.8M1.8 8l1.8 1.8M14.2 8l-1.8-1.8M14.2 8l-1.8 1.8"/></svg></button>
+    <button type="button" data-tool="brush" title="Brush: paint ink (B)"><svg viewBox="0 0 16 16"><path d="M13.6 2.4c-2.6 1.3-5.3 4-6.6 6.3l1.6 1.6c2.3-1.3 5-4 6.3-6.6.3-.9-.4-1.6-1.3-1.3zM6.6 9.3c-1.5-.1-2.6.9-2.8 2.2-.1.9-.7 1.5-1.6 1.8 1.9 1 4.9.6 5.6-1.6.2-.6.1-1.2-.2-1.7z"/></svg></button>
+    <button type="button" data-tool="smudge" title="Smudge: push the ink around without adding any (S)"><svg viewBox="0 0 16 16"><path d="M2 5.5c2-2 3.5-2 5.500 0s3.500 2 6 0M2 10.500c2-2 3.500-2 5.500 0s3.500 2 6 0"/></svg></button>
+    <button type="button" data-tool="erase" title="Eraser: wipe ink away where you drag (E)"><svg viewBox="0 0 16 16"><path d="M9.300 2.700 13.300 6.700 7 13H4.500L2.700 11.200a1 1 0 0 1 0-1.400zM6.200 5.800l4 4M7 13h6.500"/></svg></button>
+  </div>
   <span id="frozenBadge">Ink frozen · Space to continue</span>
   <div id="stage">
     <canvas id="gl" width="1024" height="1024"></canvas>
@@ -321,7 +363,7 @@
     <div id="stepText"><small></small><b></b><span></span></div>
     <button type="button" id="stepNext" class="btn btn-sm btn-primary"></button>
   </div>
-  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V letter · B ink · F finish</p>
+  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V move · B brush · S smudge · E erase · F export</p>
   <div id="err">This browser can't run the simulation (WebGL 2 with float textures is required).</div>
 </main>
 
@@ -336,7 +378,7 @@
     <select id="mode" class="seg">
       <option value="arrange" selected title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
       <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
-      <option value="finish" title="Filter, shape and size of the finished picture. (F)">Finish</option>
+      <option value="finish" title="Choose a size and save your picture or a video. (F)">Export</option>
     </select>
     <p id="modeNote"></p>
   </div>
@@ -490,8 +532,8 @@
         </fieldset></div></div>
       </div>
 
-      <div class="accordion-item" data-side="finish">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-filter"><span class="step"></span>Filter layer<small class="hint">halftone, kaleidoscope, grain</small></button></h2>
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-filter"><span class="step"></span>Filter<small class="hint">halftone, kaleidoscope, grain</small></button></h2>
         <div id="g-filter" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
           <div data-presets="filter"></div>
           <label class="ctl">Filter
@@ -516,52 +558,7 @@
           <label class="ctl">Grain <input type="range" class="form-range" id="grain" min="0" max="1" step="0.01" value="0"></label>
         </fieldset></div></div>
       </div>
-
-      <div class="accordion-item" data-side="finish">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-output"><span class="step"></span>Picture<small class="hint">shape, size</small></button></h2>
-        <div id="g-output" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
-          <div class="ctl">Shape
-            <select id="canvasShape" class="seg" title="Shape of the canvas and of the exported picture">
-              <option value="round">Round</option>
-              <option value="square">Square</option>
-            </select>
-          </div>
-          <label class="ctl">Size
-            <select id="exportSize" class="form-select form-select-sm" title="Size of the exported picture">
-              <optgroup label="Profile photo">
-                <option value="round:1024|profile" selected>Profile · 1024</option>
-                <option value="round:320|instagram-profile">Instagram profile · 320</option>
-                <option value="round:800|youtube-channel">YouTube channel icon · 800</option>
-                <option value="round:400|x-profile">X profile · 400</option>
-                <option value="round:400|linkedin-profile">LinkedIn profile · 400</option>
-                <option value="round:200|tiktok-profile">TikTok profile · 200</option>
-                <option value="round:512|discord-avatar">Discord avatar · 512</option>
-                <option value="round:2048|profile-large">Large · 2048</option>
-              </optgroup>
-              <optgroup label="Posts and covers (on paper)">
-                <option value="rect:1080x1080|instagram-post">Instagram post · 1080×1080</option>
-                <option value="rect:1080x1350|instagram-portrait">Instagram portrait · 1080×1350</option>
-                <option value="rect:1080x1920|story">Story / Reel / TikTok · 1080×1920</option>
-                <option value="rect:1280x720|youtube-thumbnail">YouTube thumbnail · 1280×720</option>
-                <option value="rect:2560x1440|youtube-banner">YouTube banner · 2560×1440</option>
-                <option value="rect:1500x500|x-header">X header · 1500×500</option>
-                <option value="rect:1584x396|linkedin-banner">LinkedIn banner · 1584×396</option>
-              </optgroup>
-            </select>
-          </label>
-          <label class="ctl">Video
-            <select id="recLength" class="form-select form-select-sm" title="When a recording finishes">
-              <option value="0" selected>Until I press stop</option>
-              <option value="5">Stops after 5 seconds</option>
-              <option value="10">Stops after 10 seconds</option>
-              <option value="15">Stops after 15 seconds</option>
-              <option value="30">Stops after 30 seconds</option>
-              <option value="60">Stops after 60 seconds</option>
-            </select>
-          </label>
-          <p class="note">Export saves a PNG at this size. The red button records a 1080 × 1080 video: press it to start and again to finish, or pick a length here.</p>
-        </fieldset></div></div>
-      </div>
+      <button type="button" id="shrink" title="Hide the menu and draw full screen"><svg viewBox="0 0 16 16"><path d="M4 6.500 8 10.500l4-4"/></svg></button>
 
     </div>
   </div>
@@ -570,9 +567,59 @@
     <label class="btn btn-outline-secondary" id="playBtn" title="Keeps shooting puffs of ink in from the edge. Set how many and how fast under Ink, Animate."><input type="checkbox" id="drips" hidden><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg><span>Play</span></label>
     <button class="btn btn-outline-secondary" id="pause" title="Stops the ink where it is. Everything stays editable. (Space)">Freeze <kbd>Space</kbd></button>
     <button class="btn btn-outline-secondary" id="record" type="button" title="Record a video of the canvas: click to start, click again to finish and save it. (R)"><i></i><span></span></button>
+    <button class="btn btn-outline-secondary" id="grow" type="button" title="Show the menu again"><svg viewBox="0 0 16 16"><path d="M4 9.500 8 5.500l4 4"/></svg>Menu</button>
     <button class="btn btn-primary ms-auto" id="export">Export</button>
   </div>
 </aside>
+
+<!-- full-screen export: preview, standard sizes, save -->
+<div id="exportView" hidden>
+  <div class="ex-wrap">
+    <div class="ex-head"><h2>Export</h2><button type="button" id="exClose" title="Back to drawing (Esc)"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <div class="ex-prev"><img id="exImg" alt="Preview of the exported picture"></div>
+    <p class="ex-meta" id="exMeta"></p>
+    <div class="ex-sizes" id="exSizes"></div>
+    <div class="ctl">Canvas
+      <select id="canvasShape" class="seg" title="Shape of the canvas and of the exported picture">
+        <option value="round">Round</option>
+        <option value="square">Square</option>
+      </select>
+    </div>
+    <div class="ctl" id="exFitRow">Frame
+      <select id="exFit" class="seg">
+        <option value="paper" title="The drawing sits in the middle of a sheet in your paper colour">On paper</option>
+        <option value="fill" title="The drawing is enlarged until it covers the whole frame; the edges are cropped">Fill the frame</option>
+      </select>
+    </div>
+    <label class="ctl">Video
+      <select id="recLength" class="form-select form-select-sm" title="When a recording finishes">
+        <option value="0" selected>Until I press stop</option>
+        <option value="5">Stops after 5 seconds</option>
+        <option value="10">Stops after 10 seconds</option>
+        <option value="15">Stops after 15 seconds</option>
+        <option value="30">Stops after 30 seconds</option>
+        <option value="60">Stops after 60 seconds</option>
+      </select>
+    </label>
+    <div class="ex-actions">
+      <button type="button" class="btn btn-outline-secondary" id="exRecord"><i></i>Record video</button>
+      <button type="button" class="btn btn-primary" id="exSave">Save PNG</button>
+    </div>
+    <select id="exportSize" hidden>
+      <option value="round:1024|profile" data-g="Profile">Profile · 1024</option>
+      <option value="round:2048|profile-large" data-g="Profile">Profile, large · 2048</option>
+      <option value="rect:1080x1080|square" data-g="Square 1:1">Post · 1080 × 1080</option>
+      <option value="rect:2160x2160|square-large" data-g="Square 1:1">Large · 2160 × 2160</option>
+      <option value="rect:1920x1080|full-hd" data-g="Wide 16:9">Full HD · 1920 × 1080</option>
+      <option value="rect:3840x2160|4k" data-g="Wide 16:9">4K · 3840 × 2160</option>
+      <option value="rect:1280x720|youtube-thumbnail" data-g="Wide 16:9">YouTube thumbnail · 1280 × 720</option>
+      <option value="rect:1080x1920|story" data-g="Tall 9:16">Story / Reel · 1080 × 1920</option>
+      <option value="rect:1080x1350|portrait" data-g="Portrait 4:5">Portrait post · 1080 × 1350</option>
+      <option value="rect:1500x500|x-header" data-g="Banner">X header · 1500 × 500</option>
+      <option value="rect:1584x396|linkedin-banner" data-g="Banner">LinkedIn banner · 1584 × 396</option>
+    </select>
+  </div>
+</div>
 
 <div class="picker" id="picker" hidden>
   <div class="pk-sv"><i></i></div>
@@ -748,10 +795,11 @@ const SRC = {
       if (solid(c) > .5) c = vUv;
       o = texture(uSrc, c) * uDecay;
     }`,
-  splat: `uniform sampler2D uSrc; uniform vec2 uPoint; uniform vec4 uColor; uniform float uRadius;
+  splat: `uniform sampler2D uSrc; uniform vec2 uPoint; uniform vec4 uColor; uniform float uRadius, uErase;
     void main(){
       vec2 p = vUv - uPoint;
-      o = texture(uSrc, vUv) + exp(-dot(p,p)/uRadius) * uColor;
+      float g = exp(-dot(p,p)/uRadius); vec4 src = texture(uSrc, vUv);
+      o = uErase > .5 ? src * (1. - min(g * 1.4, 1.)) : src + g * uColor;   // erase: fade what is there
     }`,
   curl: `uniform sampler2D uVel;
     void main(){
@@ -1168,9 +1216,14 @@ const splats = [], jets = [];
 function splat(x, y, dx, dy, color, r, vr) { splats.push({ x, y, dx, dy, color, r, vr: vr || r }); }
 function flushSplats() {
   for (const s of splats) {
-    if (s.dx || s.dy) { run(P.splat, vel.write, { uSrc: vel.read.tex, uPoint: [s.x, s.y], uColor: [s.dx, s.dy, 0, 0], uRadius: s.vr }); vel.swap(); }
-    if (s.color && s.color[4]) { run(P.splat, dye2.write, { uSrc: dye2.read.tex, uPoint: [s.x, s.y], uColor: [s.color[4], 0, 0, 0], uRadius: s.r }); dye2.swap(); }
-    else if (s.color) { run(P.splat, dye.write, { uSrc: dye.read.tex, uPoint: [s.x, s.y], uColor: s.color.slice(0, 4), uRadius: s.r }); dye.swap(); }
+    const at = { uPoint: [s.x, s.y], uErase: 0 }, zero = [0, 0, 0, 0];
+    if (s.dx || s.dy) { run(P.splat, vel.write, { ...at, uSrc: vel.read.tex, uColor: [s.dx, s.dy, 0, 0], uRadius: s.vr }); vel.swap(); }
+    if (s.erase) {   // the eraser fades all five inks under it
+      run(P.splat, dye.write, { ...at, uErase: 1, uSrc: dye.read.tex, uColor: zero, uRadius: s.r }); dye.swap();
+      run(P.splat, dye2.write, { ...at, uErase: 1, uSrc: dye2.read.tex, uColor: zero, uRadius: s.r }); dye2.swap();
+    }
+    else if (s.color && s.color[4]) { run(P.splat, dye2.write, { ...at, uSrc: dye2.read.tex, uColor: [s.color[4], 0, 0, 0], uRadius: s.r }); dye2.swap(); }
+    else if (s.color) { run(P.splat, dye.write, { ...at, uSrc: dye.read.tex, uColor: s.color.slice(0, 4), uRadius: s.r }); dye.swap(); }
   }
   splats.length = 0;
 }
@@ -1247,22 +1300,23 @@ function frame(now) {
 }
 
 /* ---------- pointer ---------- */
-let ptr = null;
+let ptr = null, tool = 'move';   // tool: what a drag on the canvas does (move letters, brush, smudge, erase)
 const pos = e => { const r = stage.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
 stage.addEventListener('pointerdown', e => {
   const [x, y] = pos(e); stage.setPointerCapture(e.pointerId);
-  if ($('mode').value === 'arrange') {
+  if (tool === 'move') {
     const l = hit(x, y); select(l);
     if (l && !l.locked) ptr = { mode: 'letter', l, x, y };
     return;
   }
   if (!square && Math.hypot(x - .5, y - .5) > .5) return;
-  ptr = { mode: 'ink', x, y };
+  ptr = { mode: tool, x, y };
   const b = +$('brush').value;
-  splat(x, 1 - y, 0, 0, inkVec(slot, 1.2), b * b);
+  if (tool === 'brush') splat(x, 1 - y, 0, 0, inkVec(slot, 1.2), b * b);
+  if (tool === 'erase') splats.push({ x, y: 1 - y, dx: 0, dy: 0, erase: true, r: b * b * 1.5, vr: b * b });
 });
 stage.addEventListener('pointermove', e => {
-  if (!ptr) { const h = $('mode').value !== 'arrange' ? null : hit(...pos(e)); stage.style.cursor = $('mode').value === 'arrange' ? (h ? (h.locked ? 'pointer' : 'grab') : 'default') : 'crosshair'; return; }
+  if (!ptr) { const h = tool !== 'move' ? null : hit(...pos(e)); stage.style.cursor = tool === 'move' ? (h ? (h.locked ? 'pointer' : 'grab') : 'default') : 'crosshair'; return; }
   const [x, y] = pos(e), dx = x - ptr.x, dy = y - ptr.y, f = FORCE * +$('force').value;
   if (ptr.mode === 'letter') {
     const l = ptr.l; l.x = Math.min(.95, Math.max(.05, l.x + dx)); l.y = Math.min(.95, Math.max(.05, l.y + dy));
@@ -1271,8 +1325,12 @@ stage.addEventListener('pointermove', e => {
     splat(l.x, 1 - l.y, dx * f * .6, -dy * f * .6, null, r * r, r * r);
   } else {
     const b = +$('brush').value, d = Math.hypot(dx, dy), n = Math.min(10, Math.max(1, Math.ceil(d / (b * .6))));
-    const col = inkVec(slot, .4);
-    for (let i = 1; i <= n; i++) splat(ptr.x + dx * i / n, 1 - (ptr.y + dy * i / n), dx * f, -dy * f, col, b * b, b * b * 1.5);
+    const col = ptr.mode === 'brush' ? inkVec(slot, .4) : null, push = ptr.mode === 'smudge' ? 1.6 : ptr.mode === 'erase' ? .25 : 1;
+    for (let i = 1; i <= n; i++) {
+      const px = ptr.x + dx * i / n, py = 1 - (ptr.y + dy * i / n);
+      if (ptr.mode === 'erase') splats.push({ x: px, y: py, dx: dx * f * push, dy: -dy * f * push, erase: true, r: b * b * 1.5, vr: b * b * 1.5 });
+      else splat(px, py, dx * f * push, -dy * f * push, col, b * b, b * b * (ptr.mode === 'smudge' ? 2.5 : 1.5));
+    }
   }
   ptr.x = x; ptr.y = y;
 });
@@ -1481,12 +1539,23 @@ $('lsize').oninput = e => { if (selected && !selected.locked) { selected.size = 
 $('lrot').oninput = e => { if (selected && !selected.locked) { selected.rot = +e.target.value; obsDirty = true; } };
 $('font').onchange = e => { if (selected) selected.font = e.target.value; loadFont(e.target.value).then(renderList); };
 $('centre').onclick = () => { if (selected && !selected.locked) { selected.x = selected.y = .5; obsDirty = true; select(selected, true); } };
+let lastMode = 'arrange';
 const syncMode = () => {
-  const m = $('mode').value; ptr = null; overlayDirty = true;
+  if ($('mode').value === 'finish') { $('mode').value = lastMode; openExport(); return; }
+  const m = lastMode = $('mode').value; ptr = null; overlayDirty = true;
+  setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);
   document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
-  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and movement. Drag on the canvas to paint.', finish: 'Filter, shape and size of the finished picture. You can still paint.' }[m];
+  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush, movement and filter. Drag on the canvas to paint.' }[m];
   document.querySelector('.panel-scroll').scrollTop = 0;
 };
+// tools and tabs stay in step: Move belongs to the Letter tab, the other three to Ink
+function setTool(t, fromMode) {
+  tool = t; ptr = null; document.querySelectorAll('#tools button').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  stage.style.cursor = t === 'move' ? 'default' : 'crosshair';
+  const want = t === 'move' ? 'arrange' : 'paint';
+  if (!fromMode && $('mode').value !== want) { $('mode').value = want; $('mode').dispatchEvent(new Event('change')); }
+}
+document.querySelectorAll('#tools button').forEach(b => b.onclick = () => setTool(b.dataset.tool));
 $('mode').addEventListener('change', syncMode); syncMode();
 $('guides').addEventListener('change', () => { overlayDirty = true; });
 $('canvasShape').addEventListener('change', () => { square = $('canvasShape').value === 'square'; stage.classList.toggle('square', square); });
@@ -1504,39 +1573,41 @@ document.querySelector('.accordion').addEventListener('click', e => {
   const id = b.dataset.bsTarget.slice(1); sideBoxes($(id).closest('.accordion-item').dataset.side).forEach(c => setBox(c, c.id === id));
   document.querySelector('.panel-scroll').scrollTop = 0;
 }, true);
-// phone layout borrows three parts: the guide floats on the canvas, Export sits in the top bar, Clear joins Play and Freeze
+// phone layout borrows parts: the guide sits in the top bar, Clear joins Play and Freeze; the shrink button hides the menu for full-screen drawing
+$('shrink').onclick = () => { document.body.classList.add('full'); overlayDirty = true; }; $('grow').onclick = () => { document.body.classList.remove('full'); overlayDirty = true; };
 const placeParts = () => {
-  if (phone.matches) { document.querySelector('main').append($('guide')); document.querySelector('.brand').append($('export')); document.querySelector('.panel-foot').append($('clear')); }
-  else { $('keys').before($('guide')); document.querySelector('.panel-foot').append($('export')); $('toolbar').prepend($('clear')); }
+  if (phone.matches) { $('themeToggle').before($('guide')); document.querySelector('.panel-foot').append($('clear'), $('grow')); }
+  else { $('keys').before($('guide')); $('toolbar').prepend($('clear')); document.body.classList.remove('full'); }
   ensureOpen(); overlayDirty = true;
 };
 phone.addEventListener('change', placeParts); $('mode').addEventListener('change', ensureOpen); placeParts();
 // the guide walks through the six steps one at a time; each step switches to its tab and opens only its box
 const STEPS = [
-  ['arrange', 'g-letters', 'Place your letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
-  ['arrange', 'g-type', 'Choose a typeface', 'Pick a font, then set its size and rotation.'],
-  ['paint', 'g-canvas', 'Pick your colours', 'Choose a palette and how many inks you want.'],
-  ['paint', 'g-ink', 'Set the brush', 'Try a preset, then adjust size and texture.'],
-  ['paint', 'g-motion', 'Paint, or press Play', 'Drag on the canvas, or let Play shoot puffs of ink.'],
-  ['finish', 'g-output', 'Finish and export', 'Add a filter, choose shape and size, press Export.'],
+  ['arrange', 'g-letters', 'Place your letter', 'Letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
+  ['arrange', 'g-type', 'Choose a typeface', 'Typeface', 'Pick a font, then set its size and rotation.'],
+  ['paint', 'g-canvas', 'Pick your colours', 'Colours', 'Choose a palette and how many inks you want.'],
+  ['paint', 'g-ink', 'Set the brush', 'Brush', 'Try a preset, then adjust size and texture.'],
+  ['paint', 'g-motion', 'Paint, or press Play', 'Paint', 'Drag on the canvas, or let Play shoot puffs of ink.'],
+  ['finish', null, 'Export', 'Export', 'Choose a size, then save a PNG or record a video.'],
 ];
 let stepAt = -1;   // -1: not started
 const showStep = () => {
   const [small, b, span] = $('stepText').children, st = STEPS[stepAt];
-  small.textContent = st ? `${stepAt + 1}/${STEPS.length}` : ''; b.textContent = st ? st[2] : 'New here?'; span.textContent = st ? st[3] : 'Six steps from letter to picture.';
+  small.textContent = st ? `${stepAt + 1}/${STEPS.length}` : ''; b.textContent = st ? st[phone.matches ? 3 : 2] : 'New here?'; span.textContent = st ? st[4] : 'Six steps from letter to picture.';
   $('stepBack').hidden = stepAt < 1; $('stepNext').textContent = !st ? 'Start' : stepAt === STEPS.length - 1 ? 'Done' : 'Next';
 };
 const goStep = i => {
   stepAt = i >= STEPS.length ? -1 : i; showStep();
   const st = STEPS[stepAt]; if (!st) return;
   $('mode').value = st[0]; $('mode').dispatchEvent(new Event('change'));
+  if (!st[1]) return;   // the last step is the export screen
   document.querySelectorAll('.accordion-collapse').forEach(c => setBox(c, c.id === st[1]));   // only this step's box is open
   ensureOpen();
   const item = $(st[1]).closest('.accordion-item'), head = item.querySelector('.accordion-button');
   if (phone.matches) document.querySelector('.panel-scroll').scrollTop = 0; else item.scrollIntoView({ behavior: 'smooth', block: 'start' });
   head.classList.remove('nudge'); void head.offsetWidth; head.classList.add('nudge');
 };
-$('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); showStep();
+$('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); phone.addEventListener('change', showStep); showStep();
 $('body').onchange = e => { if (selected) { selected.body = e.target.value; obsDirty = true; } };
 $('wall').oninput = e => { if (selected) { selected.wall = +e.target.value; obsDirty = true; } };
 $('gaps').oninput = e => { if (selected) { selected.gaps = +e.target.value; obsDirty = true; } };
@@ -1557,8 +1628,9 @@ addEventListener('keydown', e => {
 addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey) return;
   if (e.key.toLowerCase() === 'r') { $('record').click(); return; }
-  const m = { b: 'paint', v: 'arrange', f: 'finish' }[e.key.toLowerCase()];
-  if (m) { $('mode').value = m; $('mode').dispatchEvent(new Event('change')); }
+  const k = e.key.toLowerCase(), t = { b: 'brush', v: 'move', s: 'smudge', e: 'erase' }[k];
+  if (t) setTool(t);
+  if (k === 'f') openExport();
 });
 addEventListener('keydown', e => {
   const a = document.activeElement;
@@ -1609,18 +1681,42 @@ function snapshot(S) {
   canvas.width = canvas.height = old; render();
   return p;
 }
-$('export').onclick = async () => {
-  // round: a circle with transparent corners. rect: the circle centred on a sheet of paper colour at the platform's size.
+// round: a circle with see-through corners. rect: the drawing on a sheet of paper colour at the chosen size, centred or enlarged to fill it.
+async function buildExport(scale = 1) {
   const [spec, name] = $('exportSize').value.split('|'), [kind, dim] = spec.split(':');
-  let blob;
-  if (kind === 'round') blob = await snapshot(+dim);
-  else {
-    const [w, h] = dim.split('x').map(Number), D = Math.min(2048, Math.round(Math.min(w, h) * .86));
-    const art = await createImageBitmap(await snapshot(D)), c = document.createElement('canvas'); c.width = w; c.height = h;
-    const x = c.getContext('2d'); x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, w, h); x.drawImage(art, (w - D) / 2, (h - D) / 2);
-    blob = await new Promise(r => c.toBlob(r, 'image/png'));
-  }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ink-${name}-${dim}.png`;
+  if (kind === 'round') return { blob: await snapshot(Math.round(+dim * scale)), name, dim };
+  const [w, h] = dim.split('x').map(n => Math.round(n * scale)), fill = $('exFit').value === 'fill';
+  const D = fill ? Math.max(w, h) : Math.round(Math.min(w, h) * .86);
+  const art = await createImageBitmap(await snapshot(Math.min(2048, D))), c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, w, h); x.imageSmoothingQuality = 'high'; x.drawImage(art, (w - D) / 2, (h - D) / 2, D, D);
+  return { blob: await new Promise(r => c.toBlob(r, 'image/png')), name, dim };
+}
+let exUrl = null, exBusy = 0;
+async function refreshExport() {
+  const opt = $('exportSize').selectedOptions[0], [kind, dim] = opt.value.split('|')[0].split(':'), big = Math.max(...dim.split('x').map(Number));
+  document.querySelectorAll('#exSizes button').forEach(b => b.classList.toggle('on', b.dataset.v === opt.value));
+  $('exFitRow').hidden = kind === 'round';
+  $('exMeta').textContent = kind === 'round' ? `${dim} × ${dim} px · PNG with see-through corners` : `${dim.replace('x', ' × ')} px · PNG`;
+  const mine = ++exBusy, { blob } = await buildExport(Math.min(1, 720 / big));
+  if (mine !== exBusy) return;   // a newer choice overtook this one
+  if (exUrl) URL.revokeObjectURL(exUrl); $('exImg').src = exUrl = URL.createObjectURL(blob);
+}
+function openExport() { $('exportView').hidden = false; closePicker?.(); refreshExport(); }
+const closeExport = () => { $('exportView').hidden = true; };
+[...$('exportSize').options].forEach(o => {   // one card per size, with a little frame in its proportions
+  const [kind, dim] = o.value.split('|')[0].split(':'), [w, h] = kind === 'round' ? [1, 1] : dim.split('x').map(Number), k = 30 / Math.max(w, h), [label, px] = o.text.split(' · ');
+  const b = document.createElement('button'); b.type = 'button'; b.dataset.v = o.value;
+  b.innerHTML = `<em style="width:${Math.max(8, w * k)}px;height:${Math.max(8, h * k)}px${kind === 'round' ? ';border-radius:50%' : ''}"></em><span><b>${label}</b><small>${px}</small></span>`;
+  b.onclick = () => { $('exportSize').value = o.value; refreshExport(); };
+  $('exSizes').append(b);
+});
+$('exFit').addEventListener('change', refreshExport);
+$('canvasShape').addEventListener('change', () => { if (!$('exportView').hidden) refreshExport(); });
+$('export').onclick = openExport; $('exClose').onclick = closeExport;
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('exportView').hidden) closeExport(); });
+$('exRecord').onclick = () => { closeExport(); if (!rec) $('record').click(); };
+$('exSave').onclick = async () => {
+  const { blob, name, dim } = await buildExport(), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ink-${name}-${dim}.png`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
 addEventListener('resize', () => { overlayDirty = true; });
