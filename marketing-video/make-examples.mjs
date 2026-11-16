@@ -41,7 +41,7 @@ try {
     return r.result.value;
   };
   await send('Page.enable');
-  await send('Page.navigate', { url: URL_ });
+  await send('Page.navigate', { url: URL_ + (URL_.includes('?') ? '&' : '?') + 't=' + Date.now() });   // never a cached copy of the recipe page
   for (let i = 0; i < 100 && !(await evaluate('window.__ready === true').catch(() => false)); i++) await sleep(200);
   const count = await evaluate('window.__count');
   const only = process.argv[2] ? [+process.argv[2] - 1] : [...Array(count).keys()];

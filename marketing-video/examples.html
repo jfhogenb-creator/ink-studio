@@ -65,7 +65,7 @@ window.__make = async i => {
 
   setVal('mode', 'paint', 'change');   // the app opens on the Letter tab; strokes only paint on Ink
   // colour
-  if (dark) $('themeToggle').click();
+  if (dark) setVal('paperTone', 'dark', 'change');
   if (square) q('#canvasShape + .segc button')[1].click();
   let card = pal; if (typeof pal === 'string') { $('surprise').click(); card = +pal.slice(1); }
   if (card >= 4) { $('palNext').click(); card -= 4; }

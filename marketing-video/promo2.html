@@ -166,7 +166,7 @@ function buildTimeline() {
   scene(930, 1110, 'Light or dark', 'Ink darkens on light paper and glows on dark.');
   act(932, () => { focus('paint', 'g-canvas'); playing(1, .45, .1); });
   click(952, '#themeToggle');
-  act(953, () => { $('classics').click(); setVal('amount', .8); });   // show the built-in light palettes, or the next palette click would bring dark paper back
+  act(953, () => { setVal('paperTone', 'light', 'change'); $('classics').click(); setVal('amount', .8); });   // show the built-in light palettes, or the next palette click would bring dark paper back
   click(974, '#palettes .pal', 1);
   stroke(986, 1018, '1', arc(.5, .5, .34, 2.8, 5.0, .1));
   stroke(1024, 1052, '3', arc(.5, .5, .3, .1, 2.0, .1));
@@ -182,7 +182,7 @@ function buildTimeline() {
   // 8 · finish: back to dark, square, record, freeze
   scene(1260, 1440, 'Record it, freeze it, export it', 'Video or PNG, round or square, sized for every platform.');
   act(1262, () => focus('finish', 'g-output'));
-  act(1264, () => { $('themeToggle').click(); $('classics').click(); q('#palettes .pal')[0].click(); setVal('amount', .85); playing(3, .8, .05); });
+  act(1264, () => { $('themeToggle').click(); setVal('paperTone', 'dark', 'change'); $('classics').click(); q('#palettes .pal')[0].click(); setVal('amount', .85); playing(3, .8, .05); });
   click(1284, '#canvasShape + .segc button', 1);                                  // square: the corners open up
   click(1300, '#record');
   stroke(1310, 1344, '2', t => [.07 + .86 * t, .09 + .1 * Math.sin(t * 3.14)]);    // paint along the top edge, corner to corner
@@ -259,7 +259,8 @@ window.__tick = f => {
   app.srcdoc = html; await new Promise(r => { app.onload = r; });
   w = app.contentWindow; d = w.document; $ = id => d.getElementById(id); stage = $('stage'); stage.setPointerCapture = () => {};
   await Promise.all([d.fonts.ready, document.fonts.ready]); await new Promise(r => setTimeout(r, 800));
-  $('themeToggle').click();                                   // dark mode; shows the dark built-in palettes
+  if (d.documentElement.dataset.bsTheme !== 'dark') $('themeToggle').click();   // the app in night mode
+  setVal('paperTone', 'dark', 'change');                      // dark paper; shows the dark built-in palettes
   q('#palettes .pal')[0].click();                             // Neon
   setVal('guides', false, 'change'); setVal('swirl', 24); setVal('momentum', .82); setVal('brush', .055); setVal('amount', .6); setVal('fade', .04);
   q('.lrow button')[2].click(); $('text').value = 'X'; $('add').click();   // the film's letter is an X

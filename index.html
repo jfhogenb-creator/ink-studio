@@ -416,6 +416,12 @@
           <div id="palettes"></div>
           </div>
           <div class="tray" id="tray"><div class="tray-inks" id="inkSwatches"></div></div>
+          <div class="ctl">Paper
+            <select id="paperTone" class="seg" title="Light paper: ink darkens it. Dark paper: ink glows on it.">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
           <div class="ctl">Inks
             <select id="inkCount" class="seg" title="How many different inks your drawing uses">
               <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
@@ -1385,13 +1391,19 @@ const isDark = h => { const c = hex(h); return .299 * c[0] + .587 * c[1] + .114 
 function syncPaper() {
   const paper = $('paperCustom').value, dark = isDark(paper);
   $('blend').value = dark ? 'light' : 'ink'; lastPaper[dark ? 'dark' : 'light'] = paper;
-  document.documentElement.dataset.bsTheme = dark ? 'dark' : 'light';
-  $('themeToggle').innerHTML = dark ? MOON : SUN; $('themeToggle').title = dark ? 'Dark mode: ink glows. Switch to light.' : 'Light mode: ink darkens. Switch to dark.';
+  document.documentElement.dataset.paper = dark ? 'dark' : 'light'; if ($('paperTone').value !== document.documentElement.dataset.paper) $('paperTone').value = document.documentElement.dataset.paper;
   if (letterMatch && $('letterColor').value !== paper) $('letterColor').value = paper;
   const chip = $('paperChip'); if (chip) { chip.style.background = paper; chip.title = 'Paper colour'; }
 }
-$('themeToggle').onclick = () => {
-  const toDark = !isDark($('paperCustom').value);
+// The sun/moon button only changes the look of the app (day or night). It has nothing to do with the paper.
+let night = false; try { night = (localStorage.getItem('ink-night') ?? String(matchMedia('(prefers-color-scheme: dark)').matches)) === 'true'; } catch {}
+const setNight = v => { night = v; document.documentElement.dataset.bsTheme = v ? 'dark' : 'light';
+  $('themeToggle').innerHTML = v ? MOON : SUN; $('themeToggle').title = v ? 'Night mode is on. Switch the app to day.' : 'Day mode is on. Switch the app to night.'; };
+$('themeToggle').onclick = () => { setNight(!night); try { localStorage.setItem('ink-night', night); } catch {} };
+setNight(night);
+// Paper: Light or Dark flips the paper and keeps the inks readable on it
+$('paperTone').onchange = () => {
+  const toDark = $('paperTone').value === 'dark'; if (toDark === isDark($('paperCustom').value)) return;
   $('paperCustom').value = lastPaper[toDark ? 'dark' : 'light'];
   // keep every ink readable on the new paper: lift near-black inks on dark, deepen near-white inks on light
   inks = inks.map(h => { const [hu, sa, va] = hexHsv(h); return toDark ? (va < .45 ? hsvHex(hu, Math.min(sa, .5), .92) : h) : (va > .85 && sa < .3 ? hsvHex(hu, Math.max(sa, .4), .3) : h); });

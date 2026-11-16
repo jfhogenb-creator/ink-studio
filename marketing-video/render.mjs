@@ -49,7 +49,7 @@ try {
 
   await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
-  await send('Page.navigate', { url: URL_ });
+  await send('Page.navigate', { url: URL_ + (URL_.includes('?') ? '&' : '?') + 't=' + Date.now() });   // never a cached copy of the storyboard
   for (let i = 0; i < 150 && !(await evaluate('window.__ready === true').catch(() => false)); i++) await sleep(200);
   if (!(await evaluate('window.__ready === true'))) throw new Error('promo.html did not become ready (is the folder being served on port 8766?)');
 

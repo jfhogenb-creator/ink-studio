@@ -62,7 +62,7 @@ window.__make = async i => {
   q('#inkCount + .segc button')[inkCount - 1].click();
   w.__ink.applyPalette({ name: 'juriaan.design', paper, inks: [0, 1, 2, 3].map(k => inkList[k % inkCount]), letter: match ? paper : letter });
   $('paperCustom').dispatchEvent(new w.Event('input', { bubbles: true }));
-  const dark = d.documentElement.dataset.bsTheme === 'dark';     // near-black and red paper: ink adds light instead of darkening
+  const dark = d.documentElement.dataset.paper === 'dark';     // near-black and red paper: ink adds light instead of darkening
   // letter
   q('.lrow button')[2].click();                                  // remove the starter letter
   setVal('font', $('font').options[font].value, 'change'); setVal('lsize', .8);
