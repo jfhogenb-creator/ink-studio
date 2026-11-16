@@ -71,6 +71,9 @@
   #restore { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 150; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px; border-radius: 999px; white-space: nowrap;
     background: var(--pop); border: 1px solid var(--hair); box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: .8125rem; max-width: calc(100vw - 24px); }
   #restore[hidden] { display: none; }
+  #toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 160; padding: 10px 16px; border-radius: 999px; max-width: calc(100vw - 32px);
+    background: var(--strong); color: var(--on-strong); font-size: .8125rem; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,.3); text-align: center; }
+  #toast[hidden] { display: none; }
   #restore span { overflow: hidden; text-overflow: ellipsis; }
   #restoreNo { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); display: grid; place-items: center; padding: 0; flex: 0 0 auto; }
   #restoreNo svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
@@ -318,7 +321,7 @@
     #export { display: none; }                     /* Export is the third tab down here */
     /* canvas */
     main { order: 1; flex: none; padding: 4px 16px 0; align-items: flex-start; }
-    #stage { width: min(calc(100vw - 32px), calc((100dvh - 440px) * var(--ar, 1))); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
+    #stage { width: min(calc(100vw - 32px), calc((100dvh - 450px) * var(--ar, 1))); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
     #toolbar, #keys { display: none; }
     #frozenBadge { top: auto; bottom: 10px; z-index: 7; white-space: nowrap; }
     #guide { position: static; transform: none; flex: 0 1 auto; min-width: 0; max-width: none; padding: 3px; gap: 4px; background: var(--fill); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -359,6 +362,34 @@
     .accordion-collapse { order: 2; flex: 0 0 100%; min-width: 0; }
     .accordion-collapse.collapsing { transition: none; }
     .accordion-body { padding: 10px 2px 18px; }
+    /* Colour is kept short enough to show whole, without scrolling, on an iPhone with its browser bars */
+    #g-canvas .accordion-body { padding-top: 6px; padding-bottom: 8px; }
+    #g-canvas fieldset { gap: 7px; }
+    #g-canvas .note { display: none; }
+    #g-canvas .preset-box { padding: 2px 6px 7px 10px; gap: 2px; border-radius: 14px; }
+    #g-canvas .pal { padding: 6px 6px 4px; border-radius: 10px; }
+    #g-canvas .tray { padding: 7px 10px; border-radius: 14px; }
+    #g-canvas .tray-inks .sw { max-width: 38px; }
+    #g-canvas .ctl { min-height: 0; }
+    #g-canvas .ctl .segc button { padding-top: 4px; padding-bottom: 4px; }
+    /* every box is kept short enough to show whole in the sheet on an iPhone with its browser bars: no scrolling for options */
+    .panel-scroll { padding-top: 8px; }
+    .accordion .accordion-item .accordion-button { padding: 7px 14px; }
+    #shrink { width: 34px; height: 34px; }
+    .accordion-body { padding: 6px 2px 6px; }
+    .panel-scroll fieldset { gap: 6px; }
+    .panel-scroll .note, .panel-scroll .sub { display: none; }
+    #g-size .note { display: block; margin: 0; } #g-size .note span { display: none; }   /* only the size in pixels stays */
+    .panel-scroll .ctl { min-height: 26px; }
+    .panel-scroll .segc button { padding-top: 4px; padding-bottom: 4px; }
+    .panel-scroll .form-range { height: 18px; }
+    .panel-scroll [data-presets] { padding: 4px 6px 4px 6px; }
+    .fmt button { padding: 5px 4px; } .fmt button i { height: 14px; margin-bottom: 2px; }
+    .lrow { padding: 3px 6px 3px 4px; } .lrow .glyph { width: 28px; height: 28px; }
+    details.more > summary { padding: 0 10px 0 6px; }
+    details.more > div { gap: 6px; padding-top: 6px; }
+    /* Fine-tune is a second page: opening it sets the box's other controls aside, closing it brings them back */
+    .panel-scroll fieldset:has(details.more[open]) > :not(details.more) { display: none; }
     /* tab bar at the bottom */
     .mode-tabs { order: 4; flex: none; background: var(--pop); border: 0; border-top: 1px solid var(--hair); padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
     .mode-tabs p { display: none; }
@@ -445,7 +476,7 @@
               <option value="1">Large · 2×</option>
             </select>
           </div>
-          <p class="note"><b id="sizeNow"></b> What you see is what is exported. A smaller canvas removes the ink outside it.</p>
+          <p class="note"><b id="sizeNow"></b> <span>What you see is what is exported. A smaller canvas removes the ink outside it.</span></p>
         </fieldset></div></div>
       </div>
 
@@ -468,24 +499,24 @@
       <div class="accordion-item" data-side="paint">
         <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-canvas"><span class="step"></span>Colour<small class="hint">palettes, inks</small></button></h2>
         <div id="g-canvas" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div class="ctl">Inks
+            <select id="inkCount" class="seg" title="How many different inks your drawing uses">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </div>
           <div class="preset-box">
           <div class="pal-head">
             <span>Presets</span>
             <span class="tools">
               <button type="button" id="palPrev" title="Previous palettes"><svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
               <button type="button" id="palNext" title="More palettes"><svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
-              <button type="button" class="txt" id="surprise" title="Shuffle: eight new palettes that suit your paper"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle cx="5.7" cy="5.7" r=".6"/><circle cx="10.3" cy="10.3" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="10.3" cy="5.7" r=".6"/><circle cx="5.7" cy="10.3" r=".6"/></svg>Shuffle</button>
+              <button type="button" class="txt" id="surprise" title="Shuffle: eight of the 200 most popular colour palettes"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle cx="5.7" cy="5.7" r=".6"/><circle cx="10.3" cy="10.3" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="10.3" cy="5.7" r=".6"/><circle cx="5.7" cy="10.3" r=".6"/></svg>Shuffle</button>
               <button type="button" class="txt" id="classics" title="Back to the built-in palettes"><svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.6h2.6"/></svg>Reset</button>
             </span>
           </div>
           <div id="palettes"></div>
           </div>
           <div class="tray" id="tray"><div class="tray-inks" id="inkSwatches"></div></div>
-          <div class="ctl">Inks
-            <select id="inkCount" class="seg" title="How many different inks your drawing uses">
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
-            </select>
-          </div>
           <p class="note">Click an ink to paint with it, click again to recolour it.</p>
           <span hidden>
             <input type="color" class="cp" id="inkCustom" value="#14151a">
@@ -680,6 +711,7 @@
   </div>
 </div>
 
+<div id="toast" role="status" hidden></div>
 <div id="restore" hidden><span></span><button type="button" class="btn btn-sm btn-primary" id="restoreYes">Continue</button><button type="button" id="restoreNo" title="Start fresh"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
 
 <div class="picker" id="picker" hidden>
@@ -1229,7 +1261,7 @@ function drawOverlay() {
   const W = PW / (2 * half[0]), ox = (PW - W) / 2, oy = (PH - W) / 2;   // W: the whole ink square in pixels; the frame shows its middle
   const c = overlay.getContext('2d');
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PW, PH);
-  const arrange = $('mode').value === 'arrange', guides = $('guides').checked || arrange;
+  const arrange = $('mode').value === 'arrange', guides = $('guides').checked;   // the Guides switch decides on every tab, Letter included
   const flash = Math.max(0, (flashUntil - performance.now()) / 900);
   for (const l of letters) {
     if (l.hidden && l !== selected) continue;
@@ -1246,7 +1278,7 @@ function drawOverlay() {
       c.lineWidth = 1 * dpr; c.strokeStyle = 'rgba(255,255,255,.95)'; c.strokeText(l.text, 0, by);
       c.globalAlpha = 1;
     }
-    if (arrange || (sel && flash > 0)) {
+    if ((arrange && (guides || sel)) || (sel && flash > 0)) {   // with guides off, only the letter you have selected keeps its box
       c.lineWidth = 1.5 * dpr; c.setLineDash([6 * dpr, 5 * dpr]); c.globalAlpha = sel ? 1 : .5;
       c.strokeStyle = 'rgba(0,0,0,.55)'; c.strokeRect(-w / 2, -h / 2, w, h);
       c.lineDashOffset = 5.5 * dpr; c.strokeStyle = sel ? '#ff5a1f' : 'rgba(255,255,255,.9)'; c.strokeRect(-w / 2, -h / 2, w, h);
@@ -1256,7 +1288,7 @@ function drawOverlay() {
       const g = (1 - flash) * 26 * dpr;
       c.lineWidth = 4 * dpr; c.strokeStyle = `rgba(255,90,31,${flash})`; c.strokeRect(-w / 2 - g, -h / 2 - g, w + 2 * g, h + 2 * g);
     }
-    if (l.locked && arrange) {
+    if (l.locked && arrange && guides) {
       c.font = `600 ${11 * dpr}px Geist, sans-serif`; c.textAlign = 'left'; c.textBaseline = 'bottom';
       const t = 'LOCKED', tw = c.measureText(t).width + 12 * dpr, th = 18 * dpr;
       c.fillStyle = 'rgba(20,20,24,.85)'; c.fillRect(-w / 2, -h / 2 - th, tw, th);
@@ -1518,23 +1550,18 @@ addEventListener('keydown', e => {   // 1-4 pick the ink to paint with
   if (e.key >= '1' && +e.key <= inkCount) { slot = +e.key - 1; renderInks(); }
 });
 $('classics').onclick = () => { showingClassics = true; renderPalettes(classics(), -1); };
-// Randomize: eight new palettes that suit the current paper. The paper stays; its hue (if it has one) anchors
-// the harmony, and its lightness decides between deep inks on light paper and glowing inks on dark paper.
-// Randomize: eight genuinely different palettes. Each one gets its own base hue (spread round the colour wheel),
-// its own harmony and its own mood. The paper stays, and decides between deep inks (light paper) and glowing inks (dark paper).
-const SCHEMES = [['Analog', [0, 35, -35, 70]], ['Triad', [0, 120, 240, 60]], ['Split', [0, 150, 210, 30]], ['Mono', [0, 0, 0, 0]], ['Square', [0, 90, 180, 270]], ['Clash', [0, 180, 90, 300]], ['Duo', [0, 180, 15, 195]], ['Wide', [0, 60, 200, 300]]];
-const MOODS = { light: [[.75, 1, .55, .95], [.45, .7, .3, .7], [.85, 1, .35, .8], [.3, .55, .5, .9]], dark: [[.75, 1, .95, 1], [.3, .5, .95, 1], [.55, .9, .8, 1], [.9, 1, .9, 1]] };
-function genPalette(paper, k, spin) {
-  const dark = isDark(paper), rnd = (a, b) => a + Math.random() * (b - a);
-  const h = spin + k * 47 + rnd(-20, 20);   // 47° steps walk the whole wheel across eight palettes
-  const order = SCHEMES.map((_, i) => i).sort(() => Math.random() - .5);
-  const [name, offs] = SCHEMES[order[k % 8]], [s0, s1, v0, v1] = MOODS[dark ? 'dark' : 'light'][Math.floor(Math.random() * 4)];
-  const inks = [...offs, offs[1] + 200].map((o, i) => name === 'Mono' ? hsvHex(h + rnd(-8, 8), dark ? .15 + i * .2 : .3 + i * .16, dark ? 1 - i * .07 : .9 - i * .18)
-    : hsvHex(h + o + rnd(-10, 10), rnd(s0, s1), rnd(v0, v1)));
-  if (!dark && name !== 'Mono') inks[3] = hsvHex(h + offs[3], rnd(.5, .9), rnd(.18, .4));   // one deep ink to anchor light palettes
-  return { name, paper, inks, letter: dark ? hsvHex(h, .08, .96) : hsvHex(h, .5, .12) };
-}
-$('surprise').onclick = () => { const paper = $('paperCustom').value, spin = Math.random() * 360; showingClassics = false; renderPalettes(SCHEMES.map((_, k) => genPalette(paper, k, spin)), -1); };
+// Shuffle: eight of the 200 most popular five-colour palettes (the same set Tastir Studio uses):
+// nice-color-palettes by Matt DesLauriers (MIT), from the top palettes on ColourLovers. Six hex digits per colour, five colours per palette.
+const POP = '69d2e7a7dbd8e0e4ccf38630fa6900fe4365fc9d9af9cdadc8c8a983af9becd078d95b43c0294254243753777a5562704ecdc4c7f464ff6b6bc44d58774f38e08e79f1d4afece5cec5e0dce8ddcbcdb380036564033649031634490a3dbd1550e97f02f8ca008a9b0f594f4f54798045ada89de0ade5fcc200a0b06a4a3ccc333feb6841edc951e94e77d68189c6a49ac6e5d9f4ead53fb8af7fc7afdad8a7ff9e9dff3d7fd9ceb2948c75d5ded97a6a5399b2b7ffffffcbe86bf2e9e11c140dcbe86befffcddce9be5551522e263399173c343838005f6b008c9e00b4cc00dffc413e4a73626eb38184f0b49ef7e4beff4e50fc913af9d423ede574e1f5c499b898fecea8ff847ce84a5f2a363b65564380bca3f6f7bde6ac27bf4d2800a8c640c0cbf9f2e7aee2398fbe0035133042425464908ae8caa4cc2a41554236f77825d3ce3df1efa560b99a5d4157838689a8cabacad7b2ebe3aa8c23185e8c6a88a65ebfb35af2c45afad089ff9c5bf5634aed303c3b8183ff4242f4fad2d4ee5ee1edb9f0f2ebf8b195f67280c06c846c5b7b355c7dd1e751ffffff0000004dbce926ade41b676b51954888c425bef202eafde65e412ffcebb678c0a8f07818f0a830bcbdaccfbe27f27435f024753b2d3845263291204de4844ae8bf56e2f7ceeee6abc5bc8e69675845484b36393bf0d8a83d1c0086b8b1f2d694fa2a002a044a0b2e590d67597ab317a0c55ff04155ff823af2f26ffff7bd95cfb7b9d7d96682842a28294937367b3b3bbbbb88ccc68deedd99eec290eeaa88b3cc57ecf081ffbe40ef746fab3e5ba3a948edb92ef85931ce1836009989300030480048601848c04848f0724167917a170409b8af03ccbf82e33258aab3abc4cbb7ebefc9eee0b7e8caafe8d5b70e2430fc3a51f5b349e8d5b9ab526bbca297c5ceaef0e2a4f4ebc3607848789048c0d860f0f0d8604848b6d8c0c8d9bfdadabdecdbbcfedcbaa8e6cedcedc2ffd3b5ffaaa6ff8c943e4147fffedfdfba695a2e2e2a2c31fc354c29221f13747d0abfbcfcf7c5cc0c39e6781ec8cf02f8fcc11693a71c2130028f76b3e099ffeaadd14334a7c5bde5ddcbeb7b59cf4647524656dad6ca1bb0ce4f86996a5e725634445c323ea82743e15e32c0d23ee5f04cedebe6d6e1c794c7b6403b33d3643bfdf1ccc6d6b8987f69e3ad40fcd036230f2bf21d41ebebbcbce3c582b3aeb9d3b081bda4b28774f88f79f6aa933a111c57495183988ebcdea5e6f9bc5e3929cd8c52b7d1a3dee8befcf7d31c01136b0103a30006c21a01f03c020000009f111bb11623292c37cccccc382f32ffeaf2fcd9e5fbc5d8f1396de3dfbac8d6bf93ccc66cbdb51a1f1ef6f6f6e8e8e8333333990100b905041b325f9cc4e4e9f2f93a89c9f26c4fa1dbb2fee5adfaca66f7a541f45d4cc1b398605951fbeec261a6abaccec05e9fa3dcd1b4fab87ff87e7bb05574951f2bf5f4d7e0dfb1a5a36c5352338dccad988864fea6a2f9d6acffe9af2d2d29215a6d3ca2a292c7a3dfece6413d3d040004c8ff00fa023c4b000feff3cdb2d5ba61ada0248f8d605063ffefd3fffee4d0ecea9fd6d28b7a5ecfffddb4dec15c5863a85163ff1f4c9dc9acfffec7f56218ff9d2e9191674e395d8270858ebe94ccfc8edc5b3ea8a7a7cc527ae8175d474747363636f8edd1d88a8a4748439d9d93c5cfc6046d8b3092922fb8ac93a42aecbe13f38a8a55443da0cab5cde9caf1edd0a70267f10c49fb6b41f6d86b339194ff003cff8a00fabe2888c10000c176ffedbff7803cf548282e0d23f8e4c14e4d4a35343294ba652790b02b4e720ca5b04e3f30fefeebf8f4e4a5b3aa4d3b3bde6262ffb88cffd0b3f5e0d3fffbb7a6f6af66b6ab5b7c8d4f2958edf6eed1c089b3204d412e281511019d7e79ccac959a947c748b835b756cfcfef5e9ffe1cdcfb7d6e6c3fafbe39cddc8bfd8adddd9abf7af63633d2e30261c40383136544f1f5f610b8185aaff00ffaa00ff00aaaa00ff00aaffd1313de5625cf9bf768eb2c5615375ffe181eee9e5fad3b2ffba7fff9c9773c8a9dee1b6e1b866bd5532373b44805841dcf7f3fffcddffd8d8f5a2a2379f7a78ae62bbb749e0fbac1f1c0dcaff42ebf7f8d0e0eb88abc249708ac2412dd1aa34a7a844a465835a1e4a75616bbfcff7dce4f7f8f3bfd34017111625341931571b3c7a1e489d205382837e94b053bdeb07bffa37e0e0e07e5686a5aad9e8f9a2f8a13fba3c3d312736d4838fd6abb1d9d9d9c4ffeb395a4f432330853c43f25c5effa566fde6bda1c5abf4dd51d11e48632f5384b295eccf8dbb8138ac20052c1507058789503d2ed54b1ae3a72ff0ecc96da67a77b88586c28b8599874a4857bed6c7adc0b48a7e66a79b83bbb2a1261c216e1e62b0254fde4126eb9605efd9b4d6a692a390814d6160292522e21b5a9e0c39333333fbffe383a300f2e3c6ffc6a5e6324b2b2b2b353634c75233c78933d6ceaa79b5ac5e2f46793a574d33398c873ed1c5a5a38a5f512b526352747bb0a8a7dbabe4f5b111644da0b046f2c94ef78145f24e4e59b390f0ddaae47c5de32d40152b3cfdffd9fff0b8ffd6a3faad8e142f30b5ac01ecba09e86e1cd41e451b1521c7fcd7d9d5a7d9ab91e6867aed4a6a11766d410936a40b54e46f0af0b3005956434e6b66ed834eebcc6eebe1c5f1396dfd6081f3ffebacc95f8f9924331327991766d90f5af34739ff6e27efeeccfe8b05fe05574004030aabbabf496ab39c82b8c99df0d399595151b7cbbf8c886ff9a799f4bfadf5dabdffb884f5df98fff8d4c0d1c22e4347e5eaa4a8c4a269a5a461638266245be0eff17db4b5ffffff680148000000b1e6d177b1a93d7b80270a33451a3ee4ded0abccbd7dbeb8181619e32f21e9e0d191a39833605a07000168462bfc284fff824afea887f6e7f7d1d0d7ffab07e9d55872ad750e8d94434d536da67a99a66da9bd68b5cc6ac0de5d311d3967434f9b8e7ec3ccafa51a41cfb5909e9a4175891856433449281f5cacc48cd19dcee879fcb653ff525444749dc6d4e1ffffffebe7e0bdb8ad807462a69785b8faffe8fdff665c49e7edeaffc52cfb0c06030d4fceecefccf390e0e05af7c41ffc930aff003d2b222c5e4352965d62c7956df2d974cc5d4cfffec6c7d1af96b49c5b5847e4e4c5b9d48b8d2036ce0a31d3e4c5e3e8cdbcd8bfd3b9a3ee9c92fe857e360745d61c59e7d84befeac51b8798ec4401cc9b2513cd4a7b6ed65e525ceb9c4df2d680f3ffcfbac9a9697060f2e8c498d9b63ec9a72b879e616668f5dd9dbcc49992a68a7b8f8a506266fff3dbe7e4d5d3c8b4c84648703e3b0411222590737fda89c8e98ee6f99d8d7966a8a39dd8c8b8e2ddd9f8f1e9c6cca58ab8a86b999754787d6151451d131324b694d22042a3b80830c4c94b11393b40582a6e787a907cc9b1802d1b33f36a71ee887ae4e3919abc8af0ffc9a9da8862997a72243d3b08194293986b5d4db0a18fdfcdb4fbeed39d9e94c99e93f59d92e5b8add5d2c895a131c8cd3bf6f1def5b9aeee0b5b32293889a194cfc89acc883aa14016540045c60052ff714beaff87acffe979254a795c6479927daeb18ee3cf9e452e3cff3d5affb969eaf27e3b8c882b27260a516d0187907dad93bacca4027b7fffa588d62957bf1e62572e4ffa6a647a4e484a4031f6e2bb9ec6b8fb6900f63700004853007e8000b9bdf06d61da825fc4975ca8ab7b8cbf9923192dfd0a54f57576febf97f5ecb7f6d76bff9036d6254dff5475fdeba9a3c68c8796766e66624f364a340735a32c281c090b3840307b8055bca87580a8a8909d9ea88c8cff0d517a8c896d97881e25287e1c13bf0a0de6e1c23737378db986acce91badb73efeae4e6b39ae6cba5ede3b48b9e9b6d7578280904680e349a151ac21b12fc4b2a4b3e4d1e8c93dbd8a2c4ac30d74f33161616c94d65e7c04992b35a1f6764234d2036802d77ab59c9df8af0f7daa69e80e0ba9be7a97ed285743b1922641f5e67607765ac92c2c092edd48ee6eba9abbb9f6f8b94706482703d6f26251ceb0a44f2643df2a73da0e8b7fdcfbffeb89fe23d755f0d3b742365ff7474f59b71c7c77fe0e0a8f1f1c14f364c5e405f6b6b6b8f9e6fb1cf72230b00a29d7fd4cfa5f8ecd4aabe9bd4f7dcdbe7b4dbc092e0846df5144162a07b4f8b89536c8d5c4f79613860';
+const popAt = i => [0, 1, 2, 3, 4].map(k => '#' + POP.substr(i * 30 + k * 6, 6));
+const lumOf = h => { const c = hex(h); return .299 * c[0] + .587 * c[1] + .114 * c[2]; };
+// The inks you use first are the ones that stand out most from your paper; a colour close to the paper goes last.
+const popPalette = (i, paper) => ({ name: 'Pop ' + (i + 1), paper, letter: isDark(paper) ? '#f4f4f5' : '#14151a',
+  inks: popAt(i).sort((a, b) => Math.abs(lumOf(b) - lumOf(paper)) - Math.abs(lumOf(a) - lumOf(paper))) });
+$('surprise').onclick = () => {
+  const paper = $('paperCustom').value, picks = new Set(); while (picks.size < 8) picks.add(Math.floor(Math.random() * 200));
+  showingClassics = false; renderPalettes([...picks].map(i => popPalette(i, paper)), -1);
+};
 
 /* ---------- presets: the same row (chips + randomize + reset) at the top of every box ---------- */
 const DICE = '<svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle cx="5.7" cy="5.7" r=".6"/><circle cx="10.3" cy="10.3" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="10.3" cy="5.7" r=".6"/><circle cx="5.7" cy="10.3" r=".6"/></svg>';
@@ -1625,7 +1652,7 @@ $('add').onclick = addFromInput;
 $('text').addEventListener('keydown', e => { if (e.key === 'Enter') addFromInput(); });
 $('lsize').oninput = e => { if (selected && !selected.locked) { selected.size = +e.target.value; obsDirty = true; } };
 $('lrot').oninput = e => { if (selected && !selected.locked) { selected.rot = +e.target.value; obsDirty = true; } };
-$('font').onchange = e => { if (selected) selected.font = e.target.value; loadFont(e.target.value).then(renderList); };
+$('font').onchange = e => { if (selected && !selected.locked) selected.font = e.target.value; loadFont(e.target.value).then(renderList); };
 $('centre').onclick = () => { if (selected && !selected.locked) { selected.x = selected.y = .5; obsDirty = true; select(selected, true); } };
 let lastMode = $('mode').value;
 const syncMode = () => {
@@ -1700,16 +1727,35 @@ const goStep = i => {
   head.classList.remove('nudge'); void head.offsetWidth; head.classList.add('nudge');
 };
 $('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); phone.addEventListener('change', showStep); showStep();
+// With a single letter on the canvas there is nothing to choose: touching Typography or Edges selects it, so the change lands on it.
+// A locked letter can't be changed; trying to says so in a small pop-up and puts the control back.
+const PER_LETTER = ['lsize', 'lrot', 'font', 'body', 'wall', 'gaps', 'gapw'];   // lstyle and bleed belong to all letters
+let toastTimer = 0;
+const toast = msg => { $('toast').textContent = msg; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 2600); };
+const lockedNote = l => toast(`“${l.text}” is locked. Unlock it under Letters to change it.`);
+for (const id of ['g-body', 'g-type']) { const box = $(id);
+  const pickOnly = () => { if (!selected && letters.length === 1) select(letters[0], true); };
+  ['pointerdown', 'focusin'].forEach(ev => box.addEventListener(ev, pickOnly, true));
+  ['input', 'change'].forEach(ev => box.addEventListener(ev, e => {
+    const t = e.target; if (!PER_LETTER.includes(t.id) && !t.closest('[data-presets]')) return;
+    if (!selected && letters.length === 1) { const v = t.value; select(letters[0], true); t.value = v; }   // selecting resets the controls to the letter; keep what was just set
+    if (selected?.locked) { e.stopPropagation(); select(selected); window.__syncUI?.(); lockedNote(selected); }
+  }, true));
+  box.addEventListener('click', e => {
+    if (!e.target.closest('[data-presets] button')) return;
+    pickOnly(); if (selected?.locked) { e.stopPropagation(); e.preventDefault(); lockedNote(selected); }
+  }, true);
+}
 // tweaking a letter's shape lights it up (see letterShown)
 for (const id of ['g-body', 'g-type']) { const box = $(id);
   ['input', 'change', 'click'].forEach(ev => box.addEventListener(ev, () => { glowUntil = performance.now() + 1400; }));
   box.addEventListener('pointerdown', () => { glowHold = true; });
 }
 ['pointerup', 'pointercancel'].forEach(ev => addEventListener(ev, () => { if (glowHold) { glowHold = false; glowUntil = performance.now() + 1400; } }));
-$('body').onchange = e => { if (selected) { selected.body = e.target.value; obsDirty = true; } };
-$('wall').oninput = e => { if (selected) { selected.wall = +e.target.value; obsDirty = true; } };
-$('gaps').oninput = e => { if (selected) { selected.gaps = +e.target.value; obsDirty = true; } };
-$('gapw').oninput = e => { if (selected) { selected.gapw = +e.target.value; obsDirty = true; } };
+$('body').onchange = e => { if (selected && !selected.locked) { selected.body = e.target.value; obsDirty = true; } };
+$('wall').oninput = e => { if (selected && !selected.locked) { selected.wall = +e.target.value; obsDirty = true; } };
+$('gaps').oninput = e => { if (selected && !selected.locked) { selected.gaps = +e.target.value; obsDirty = true; } };
+$('gapw').oninput = e => { if (selected && !selected.locked) { selected.gapw = +e.target.value; obsDirty = true; } };
 // Match paper is a link, not a one-off copy: while it's on, the letter colour follows the paper exactly
 const setMatch = v => { letterMatch = v; $('matchPaper').classList.toggle('active', v); if (v) $('letterColor').value = $('paperCustom').value; };
 $('matchPaper').onclick = () => setMatch(!letterMatch);
