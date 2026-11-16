@@ -393,7 +393,7 @@
 
   <div class="mode-tabs">
     <select id="mode" class="seg">
-      <option value="canvas" selected title="Your paper: its size, colours and texture. Change them any time. (C)">Canvas</option>
+      <option value="canvas" selected title="Your paper: its size and colour. Change them any time. (C)">Canvas</option>
       <option value="arrange" title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
       <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
       <option value="animate" title="How the ink moves, and what Play does. (A)">Animate</option>
@@ -424,7 +424,23 @@
       </div>
 
       <div class="accordion-item" data-side="canvas">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-canvas"><span class="step"></span>Colour<small class="hint">paper, inks, palettes</small></button></h2>
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-paper"><span class="step"></span>Paper<small class="hint">colour, light or dark</small></button></h2>
+        <div id="g-paper" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div class="ctl">Colour
+            <span><input type="color" class="cp" id="paperCustom" value="#f4efe6" title="Paper colour"></span>
+          </div>
+          <div class="ctl">Tone
+            <select id="paperTone" class="seg" title="Light paper: ink darkens it. Dark paper: ink glows on it.">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <p class="note">Ink darkens light paper and glows on dark paper. A palette under Ink brings its own paper colour with it.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-canvas"><span class="step"></span>Colour<small class="hint">palettes, inks</small></button></h2>
         <div id="g-canvas" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
           <div class="preset-box">
           <div class="pal-head">
@@ -439,30 +455,25 @@
           <div id="palettes"></div>
           </div>
           <div class="tray" id="tray"><div class="tray-inks" id="inkSwatches"></div></div>
-          <div class="ctl">Paper
-            <select id="paperTone" class="seg" title="Light paper: ink darkens it. Dark paper: ink glows on it.">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
           <div class="ctl">Inks
             <select id="inkCount" class="seg" title="How many different inks your drawing uses">
               <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
             </select>
           </div>
-          <p class="note">Click an ink to paint with it, click again to recolour it. The square is the paper.</p>
+          <p class="note">Click an ink to paint with it, click again to recolour it.</p>
           <span hidden>
-            <input type="color" class="cp" id="paperCustom" value="#f4efe6">
             <input type="color" class="cp" id="inkCustom" value="#14151a">
             <select id="blend"><option value="ink">ink</option><option value="light">light</option></select>
           </span>
         </fieldset></div></div>
       </div>
 
-      <div class="accordion-item" data-side="canvas">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-texture"><span class="step"></span>Texture<small class="hint">dots or liquid, dot size</small></button></h2>
-        <div id="g-texture" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, amount, texture</small></button></h2>
+        <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
           <div data-presets="brush"></div>
+          <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
+          <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
           <div class="ctl">Texture
             <select id="shape" class="seg">
               <option value="pixels" title="Ink is drawn as round dots that fuse together">Dots</option>
@@ -470,21 +481,12 @@
             </select>
           </div>
           <label class="ctl" data-when="pixels">Dot size <input type="range" class="form-range" id="pixel" min="0.008" max="0.034" step="0.001" value="0.021" data-top="50"></label>
-          <details class="more" data-when="pixels"><summary>Fine-tune</summary><div>
-            <label class="ctl" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
-            <label class="ctl" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
-            <label class="ctl" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
+          <details class="more"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
+            <label class="ctl" data-when="pixels" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
+            <label class="ctl" data-when="pixels" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
+            <label class="ctl" data-when="pixels" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
           </div></details>
-        </fieldset></div></div>
-      </div>
-
-      <div class="accordion-item" data-side="paint">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, amount, force</small></button></h2>
-        <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
-          <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
-          <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
-          <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
-          <p class="note">The brush also sets the width of Smudge and the Eraser.</p>
         </fieldset></div></div>
       </div>
 
@@ -1435,8 +1437,7 @@ const shuffleInks = () => { const vis = inks.slice(0, inkCount); vis.push(vis.sh
 const withFifth = a => { if (a.length >= 5) return a.slice(0, 5); const [h, sa, va] = hexHsv(a[1]); return [...a, hsvHex(h + 150, Math.max(sa, .45), Math.min(1, Math.max(va, .55)))]; };
 function renderInks() {
   const host = $('inkSwatches'); host.textContent = '';
-  const pc = document.createElement('button'); pc.type = 'button'; pc.id = 'paperChip'; pc.className = 'sw paper';
-  pc.onclick = () => openPicker($('paperCustom'), pc); host.append(pc); syncPaper();
+  syncPaper();   // the paper has its own place: Canvas, Paper
   slot = Math.min(slot, inkCount - 1); haloSlot = Math.min(haloSlot, inkCount - 1);
   inks.slice(0, inkCount).forEach((c, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'sw' + (i === slot ? ' sel' : ''); b.style.background = c; b.textContent = i + 1;
@@ -1593,7 +1594,7 @@ const syncMode = () => {
   const m = lastMode = $('mode').value; ptr = null; overlayDirty = true;
   setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);   // Move belongs to Letter; every other tab paints
   document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
-  $('modeNote').textContent = { canvas: 'Your paper: its size, colours and texture. Change them any time.', arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
+  $('modeNote').textContent = { canvas: 'Your paper: its size and colour. Change them any time.', arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
   document.querySelector('.panel-scroll').scrollTop = 0;
 };
 // tools and tabs stay in step: Move belongs to the Letter tab, the other three to Ink
@@ -1634,10 +1635,10 @@ const placeParts = () => {
 phone.addEventListener('change', placeParts); $('mode').addEventListener('change', ensureOpen); placeParts();
 // the guide walks through the six steps one at a time; each step switches to its tab and opens only its box
 const STEPS = [
-  ['canvas', 'g-size', 'Set up your canvas', 'Canvas', 'Choose round, square or a frame, and its size.'],
-  ['canvas', 'g-canvas', 'Pick your colours', 'Colours', 'Choose light or dark paper, a palette and how many inks.'],
+  ['canvas', 'g-size', 'Set up your canvas', 'Canvas', 'Choose round, square or a frame, its size and the paper.'],
   ['arrange', 'g-letters', 'Place your letter', 'Letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
   ['arrange', 'g-type', 'Choose a typeface', 'Typeface', 'Pick a font, then set its size and rotation.'],
+  ['paint', 'g-canvas', 'Pick your colours', 'Colours', 'Choose a palette and how many inks you want.'],
   ['paint', 'g-ink', 'Paint', 'Paint', 'Set the brush, then drag on the canvas.'],
   ['animate', 'g-play', 'Press Play', 'Animate', 'Let Play shoot puffs of ink, and set how it moves.'],
   ['finish', null, 'Export', 'Export', 'Add a filter, then save a PNG or record a video.'],
