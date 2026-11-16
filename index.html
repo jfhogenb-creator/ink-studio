@@ -359,6 +359,11 @@
     .mode-tabs .segc { gap: 2px; }
     .mode-tabs .segc button { padding: 12px 2px; border-radius: 14px; font-size: .8125rem; }
   }
+  /* phones: the Export screen slides up into place */
+  @keyframes exUp { from { transform: translateY(56px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+    #exportView:not([hidden]) { animation: exUp .32s cubic-bezier(.2, .8, .2, 1) both; }
+  }
   /* iPhone zooms the whole page when a field with text smaller than 16px gets focus, and doesn't zoom back. Keep fields at 16px on phones and touch screens. */
   @media (max-width: 900px), (pointer: coarse) {
     input[type=text], input[type=number], input:not([type]), select, textarea, .form-control, .form-select, .pk-fields input { font-size: 16px !important; }
