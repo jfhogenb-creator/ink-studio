@@ -67,6 +67,13 @@
   #tools svg, #shrink svg, #grow svg, #exClose svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   #shrink, #grow, #tools #guideBtn, .preset-select { display: none; }
   #guideBtn.on { background: var(--fill-2) !important; color: var(--text) !important; }
+  /* "continue your last drawing?" */
+  #restore { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 150; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px; border-radius: 999px; white-space: nowrap;
+    background: var(--pop); border: 1px solid var(--hair); box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: .8125rem; max-width: calc(100vw - 24px); }
+  #restore[hidden] { display: none; }
+  #restore span { overflow: hidden; text-overflow: ellipsis; }
+  #restoreNo { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); display: grid; place-items: center; padding: 0; flex: 0 0 auto; }
+  #restoreNo svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
   /* full-screen export */
   #exportView { position: fixed; inset: 0; z-index: 200; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   #exportView[hidden] { display: none; }
@@ -672,6 +679,8 @@
     </div>
   </div>
 </div>
+
+<div id="restore" hidden><span></span><button type="button" class="btn btn-sm btn-primary" id="restoreYes">Continue</button><button type="button" id="restoreNo" title="Start fresh"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
 
 <div class="picker" id="picker" hidden>
   <div class="pk-sv"><i></i></div>
@@ -1760,6 +1769,7 @@ $('pause').onclick = () => {
   stage.classList.toggle('frozen', frozen);
   $('frozenBadge').textContent = matchMedia('(max-width: 900px), (pointer: coarse)').matches ? 'Ink frozen · tap Unfreeze to continue' : 'Ink frozen · Space to continue';
   $('frozenBadge').style.display = frozen ? 'block' : 'none';
+  if (frozen) saveDrawing().then(ok => { if (ok && frozen) $('frozenBadge').textContent = $('frozenBadge').textContent.replace('Ink frozen', 'Frozen and saved'); });
 };
 $('clear').onclick = () => {
   for (const t of [dye.read, dye.write, dye2.read, dye2.write, vel.read, vel.write, prs.read, prs.write]) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.clear(gl.COLOR_BUFFER_BIT); }
@@ -1849,6 +1859,53 @@ $('exSave').onclick = async () => {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
 addEventListener('resize', () => { overlayDirty = true; });
+
+/* ---------- autosave: Freeze keeps a copy of the drawing on this device, and the next visit offers to continue it ---------- */
+// One save, held in the browser's own storage (IndexedDB; cookies are far too small for a drawing). Nothing leaves the device.
+// Not used when the app runs inside another page, as it does in the film and example renderers.
+const canSave = window.top === window && 'indexedDB' in window;
+const saveDb = () => new Promise((res, rej) => { const r = indexedDB.open('ink-studio', 1); r.onupgradeneeded = () => r.result.createObjectStore('saves'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const saveTx = async (mode, fn) => { const d = await saveDb(); return new Promise((res, rej) => { const t = d.transaction('saves', mode), q = fn(t.objectStore('saves')); t.oncomplete = () => res(q.result); t.onerror = () => rej(t.error); }); };
+const SAVE_MAX = 8;   // ink amounts are stored in 8 bits each: 0..SAVE_MAX on a square-root curve
+function readInk(t, ch) {   // one ink texture as bytes, ch channels per pixel
+  const f = new Float32Array(t.w * t.h * 4), b = new Uint8Array(t.w * t.h * ch);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.readPixels(0, 0, t.w, t.h, gl.RGBA, gl.FLOAT, f);
+  for (let i = 0, n = t.w * t.h; i < n; i++) for (let c = 0; c < ch; c++) b[i * ch + c] = Math.round(255 * Math.sqrt(Math.min(Math.max(f[i * 4 + c], 0), SAVE_MAX) / SAVE_MAX));
+  return b;
+}
+function writeInk(pair, b, ch) {
+  const t = pair.read, f = new Float32Array(t.w * t.h * ch);
+  for (let i = 0; i < f.length; i++) { const v = b[i] / 255; f[i] = v * v * SAVE_MAX; }
+  gl.bindTexture(gl.TEXTURE_2D, t.tex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, t.w, t.h, ch === 4 ? gl.RGBA : gl.RED, gl.FLOAT, f);
+}
+const savedControls = () => [...document.querySelectorAll('aside input[id], aside select[id], #exportView select[id]')].filter(el => !['text', 'mode', 'drips', 'guides'].includes(el.id) && el.type !== 'number');
+async function saveDrawing() {
+  if (!canSave) return false;
+  try {
+    const values = {}; savedControls().forEach(el => { values[el.id] = el.type === 'checkbox' ? el.checked : el.value; });
+    await saveTx('readwrite', st => st.put({ v: 1, at: Date.now(), values, inks, slot, letterMatch, out, customSize, letters: letters.map(l => ({ ...l })),
+      w: dye.read.w, dye: readInk(dye.read, 4), dye2: readInk(dye2.read, 1) }, 'auto'));
+    return true;
+  } catch (e) { console.warn('Could not save the drawing', e); return false; }
+}
+async function restoreDrawing(sv) {
+  Object.entries(sv.values).forEach(([id, v]) => { const el = $(id); if (!el) return; if (el.type === 'checkbox') el.checked = v; else el.value = v; });
+  inks = sv.inks; inkCount = +$('inkCount').value; slot = Math.min(sv.slot, inkCount - 1); Object.assign(out, sv.out); customSize = sv.customSize;
+  letters.length = 0; letters.push(...sv.letters); await Promise.all(letters.map(l => loadFont(l.font)));
+  setMatch(sv.letterMatch); setCanvas(); syncPaper(); renderInks(); drawPalettes(); syncWhen(); select(null);
+  for (const t of [vel.read, vel.write, prs.read, prs.write]) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.clear(gl.COLOR_BUFFER_BIT); }   // the ink comes back standing still
+  jets.length = 0;
+  if (sv.w === dye.read.w) { writeInk(dye, sv.dye, 4); writeInk(dye2, sv.dye2, 1); }
+  obsDirty = overlayDirty = true;
+}
+if (canSave) saveTx('readonly', st => st.get('auto')).then(sv => {
+  if (!sv || sv.v !== 1) return;
+  const d = new Date(sv.at), today = d.toDateString() === new Date().toDateString();
+  $('restore').firstChild.textContent = `Continue your drawing from ${today ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { day: 'numeric', month: 'short' })}?`;
+  $('restore').hidden = false;
+  $('restoreYes').onclick = () => { $('restore').hidden = true; restoreDrawing(sv); };
+  $('restoreNo').onclick = () => { $('restore').hidden = true; };
+}).catch(() => {});
 
 /* ---------- opening scene ---------- */
 function loadFont(v) {
