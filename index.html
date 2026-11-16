@@ -1328,11 +1328,19 @@ function step(dt) {
   run(P.advect, dye.write, { ...T, uVel: vel.read.tex, uSrc: dye.read.tex, uDt: dt, uDecay: fadeK }); dye.swap();
   run(P.advect, dye2.write, { ...T, uVel: vel.read.tex, uSrc: dye2.read.tex, uDt: dt, uDecay: fadeK }); dye2.swap();
 }
+// A letter in the paper's colour can't be seen where there is no ink. While its shape is being changed (Typography or Edges)
+// it lights up in the highlight colour, then fades back. Never in an export or a recording.
+let glowUntil = 0, glowHold = false, plain = false;
+function letterShown() {
+  const c = hex($('letterColor').value), paper = hex($('paperCustom').value), left = glowHold ? 1 : (glowUntil - performance.now()) / 400;
+  if (left <= 0 || plain || rec || c.some((v, i) => Math.abs(v - paper[i]) > .02)) return c;
+  const k = Math.min(1, left), hi = [1, .353, .122]; return c.map((v, i) => v + (hi[i] - v) * k);
+}
 function render() {
   const halo = { uLBlob: $('lstyle').value === 'blob' ? 1 : 0, 'uInk[0]': inkUniform(), uDye2: dye2.read.tex, uDist: distTex, uHaloOn: 0, uReach: 0, uSoft: 0, uHaloAmt: 0, uSpeck: 0, uHaloInk: [0, 0, 0] };
   const pixels = $('shape').value !== 'smooth', cells = 1 / +$('pixel').value;
   if (pixels) run(P.cells, cellT, { uDye: dye.read.tex, uCells: cells, ...halo });
-  run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: hex($('letterColor').value),
+  run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: letterShown(),
     uMode: $('blend').value === 'ink' ? 0 : 1, uPx: 1.5 * 2 * half[0] / canvas.width,
     uShape: $('shape').value === 'smooth' ? 0 : 1, uCells: 1 / +$('pixel').value, uBlob: +$('blob').value,
     uGoo: +$('goo').value, uRound: +$('round').value, uSolid: 1,
@@ -1678,6 +1686,12 @@ const goStep = i => {
   head.classList.remove('nudge'); void head.offsetWidth; head.classList.add('nudge');
 };
 $('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); phone.addEventListener('change', showStep); showStep();
+// tweaking a letter's shape lights it up (see letterShown)
+for (const id of ['g-body', 'g-type']) { const box = $(id);
+  ['input', 'change', 'click'].forEach(ev => box.addEventListener(ev, () => { glowUntil = performance.now() + 1400; }));
+  box.addEventListener('pointerdown', () => { glowHold = true; });
+}
+['pointerup', 'pointercancel'].forEach(ev => addEventListener(ev, () => { if (glowHold) { glowHold = false; glowUntil = performance.now() + 1400; } }));
 $('body').onchange = e => { if (selected) { selected.body = e.target.value; obsDirty = true; } };
 $('wall').oninput = e => { if (selected) { selected.wall = +e.target.value; obsDirty = true; } };
 $('gaps').oninput = e => { if (selected) { selected.gaps = +e.target.value; obsDirty = true; } };
@@ -1749,7 +1763,7 @@ $('clear').onclick = () => {
 function snapshot(w, h) {   // a PNG of the canvas: w by h pixels, or with one number its longer side
   if (!h) { const S = w; w = Math.round(S * 2 * half[0]); h = Math.round(S * 2 * half[1]); }
   const ow = canvas.width, oh = canvas.height;
-  canvas.width = w; canvas.height = h; render();
+  plain = true; canvas.width = w; canvas.height = h; render(); plain = false;   // plain: without the letter highlight
   const p = new Promise(r => canvas.toBlob(r, 'image/png'));
   canvas.width = ow; canvas.height = oh; render();
   return p;
