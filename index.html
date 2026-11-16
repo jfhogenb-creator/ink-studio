@@ -1825,8 +1825,19 @@ async function refreshExport() {
 }
 // the Filter controls are the same ones as under Ink: they move onto the export screen while it is open, and back when it closes
 const filterBox = document.querySelector('#g-filter fieldset'), filterHome = filterBox.parentElement;
-function openExport() { $('exportView').hidden = false; closePicker?.(); $('exFilter').append(filterBox); refreshExport(); }
-const closeExport = () => { $('exportView').hidden = true; closePicker?.(); filterHome.append(filterBox); };
+// The ink is frozen while the export screen is open, so the preview and the saved picture show the same moment.
+// Closing it sets the ink moving again, unless it was already frozen before.
+let exFroze = false;
+function openExport() {
+  if (!$('exportView').hidden) return;
+  exFroze = !frozen; if (exFroze) $('pause').click();
+  $('exportView').hidden = false; closePicker?.(); $('exFilter').append(filterBox); refreshExport();
+}
+const closeExport = () => {
+  if ($('exportView').hidden) return;
+  $('exportView').hidden = true; closePicker?.(); filterHome.append(filterBox);
+  if (exFroze && frozen) $('pause').click(); exFroze = false;
+};
 $('exFilter').addEventListener('input', refreshExport); $('exFilter').addEventListener('change', refreshExport); $('exFilter').addEventListener('click', () => setTimeout(refreshExport));
 $('export').onclick = openExport; $('exClose').onclick = closeExport;
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('exportView').hidden) closeExport(); });
