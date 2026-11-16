@@ -86,6 +86,14 @@
   .ex-sizes button b { display: block; font-size: .78rem; font-weight: 600; line-height: 1.2; } .ex-sizes button small { font: 400 .625rem var(--mono); color: var(--faint); }
   .ex-sizes button.on { background: var(--strong); color: var(--on-strong); } .ex-sizes button.on em { border-color: currentColor; } .ex-sizes button.on small { color: inherit; opacity: .65; }
   #exFilter fieldset { display: grid; gap: 10px; } #exportView .sub { margin: 4px 0 -4px; }
+  /* canvas formats: one compact row of shapes; resolution is a separate choice */
+  .fmt { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .fmt button { border: 0; border-radius: 12px; background: var(--fill); color: var(--text); padding: 8px 4px 7px; display: grid; justify-items: center; align-content: center; gap: 1px; font: inherit; min-width: 0; transition: background .15s; }
+  .fmt button:hover { background: var(--fill-2); }
+  .fmt button i { height: 18px; display: grid; place-items: center; margin-bottom: 3px; } .fmt button em { display: block; border: 1.5px solid var(--muted); border-radius: 2.5px; }
+  .fmt button b { font-size: .75rem; font-weight: 600; line-height: 1.15; } .fmt button small { font-size: .625rem; color: var(--faint); line-height: 1.2; }
+  .fmt button.on { background: var(--strong); color: var(--on-strong); } .fmt button.on em { border-color: currentColor; } .fmt button.on small { color: inherit; opacity: .65; }
+  #sizeNow { font: 500 .6875rem var(--mono); color: var(--muted); margin-right: 4px; }
   .ex-wh { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap !important; } .ex-wh input { width: 92px; text-align: center; } .ex-wh i { font-style: normal; color: var(--faint); }
   .ex-actions { display: flex; gap: 8px; position: sticky; bottom: 0; z-index: 2; margin: 0 -16px calc(-20px - env(safe-area-inset-bottom)); padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--hair); }   /* Save and Record stay in reach while the rest scrolls */
   .ex-actions .btn { flex: 1; padding: 12px; border-radius: 16px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -408,18 +416,24 @@
       <div class="accordion-item" data-side="canvas">
         <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-size"><span class="step"></span>Size<small class="hint">round, square or any frame</small></button></h2>
         <div id="g-size" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
-          <div class="ctl">Canvas
+          <div class="ctl" style="display: none">Canvas   <!-- kept for scripts: the format chips below drive it -->
             <select id="canvasShape" class="seg" title="Shape and size of the canvas. What you see is exactly what is exported.">
               <option value="round">Round</option>
               <option value="square">Square</option>
               <option value="rect">Frame</option>
             </select>
           </div>
-          <div class="ex-sizes" id="exSizes"></div>
+          <div class="fmt" id="fmtChips"></div>
           <div class="ctl" id="exCustom">Your own
             <span class="ex-wh"><input type="number" class="form-control form-control-sm" id="exW" min="200" max="4096" step="1" inputmode="numeric" aria-label="Width in pixels"><i>×</i><input type="number" class="form-control form-control-sm" id="exH" min="200" max="4096" step="1" inputmode="numeric" aria-label="Height in pixels"><i>px</i></span>
           </div>
-          <p class="note">What you see is what is exported. Making the canvas smaller removes the ink outside it.</p>
+          <div class="ctl" id="resRow">Resolution
+            <select id="sizeLarge" class="seg" title="Standard is right for screens and social media. Large has twice the width and height, for print or cropping.">
+              <option value="0">Standard</option>
+              <option value="1">Large · 2×</option>
+            </select>
+          </div>
+          <p class="note"><b id="sizeNow"></b> What you see is what is exported. A smaller canvas removes the ink outside it.</p>
         </fieldset></div></div>
       </div>
 
@@ -1741,11 +1755,12 @@ function snapshot(w, h) {   // a PNG of the canvas: w by h pixels, or with one n
   return p;
 }
 // The canvas is what gets exported: a round or square picture, or a frame of any size. Each shape remembers its size.
-const SIZES = {
-  round: [['Profile', 1024, 1024], ['Profile, large', 2048, 2048]],
-  square: [['Post', 1080, 1080], ['Large', 2160, 2160]],
-  rect: [['Full HD · 16:9', 1920, 1080], ['Story · 9:16', 1080, 1920], ['Portrait · 4:5', 1080, 1350], ['Classic · 4:3', 1600, 1200]],
-};
+// One list of formats: the shape and the proportions are the same choice. Sizes are the standard ones; Large doubles them.
+const FORMATS = [
+  ['round', 'Round', 'Profile', 1024, 1024], ['square', '1:1', 'Square', 1080, 1080], ['rect', '16:9', 'Wide', 1920, 1080], ['rect', '9:16', 'Story', 1080, 1920],
+  ['rect', '4:5', 'Portrait', 1080, 1350], ['rect', '4:3', 'Classic', 1600, 1200], ['rect', '3:2', 'Photo', 1620, 1080], ['custom', 'Custom', 'Your own', 0, 0],
+];
+let customSize = false;   // true while the size is typed in by hand
 const out = { round: [1024, 1024], square: [1080, 1080], rect: [1920, 1080] };
 function setCanvas() {
   shape = $('canvasShape').value; square = shape !== 'round';
@@ -1755,18 +1770,31 @@ function setCanvas() {
   canvas.width = Math.round(1024 * 2 * half[0]); canvas.height = Math.round(1024 * 2 * half[1]);
   for (const l of letters) { l.x = Math.min(.45 + half[0], Math.max(.55 - half[0], l.x)); l.y = Math.min(.45 + half[1], Math.max(.55 - half[1], l.y)); }   // keep letters inside the frame
   obsDirty = overlayDirty = true;
-  // the export screen follows
-  $('exSizes').replaceChildren(...SIZES[shape].map(([label, sw, sh]) => {
-    const k = 30 / Math.max(sw, sh), b = document.createElement('button'); b.type = 'button'; b.classList.toggle('on', sw === w && sh === h);
-    b.innerHTML = `<em style="width:${sw * k}px;height:${sh * k}px${shape === 'round' ? ';border-radius:50%' : ''}"></em><span><b>${label}</b><small>${shape === 'round' ? sw : sw + ' × ' + sh}</small></span>`;
-    b.onclick = () => { out[shape] = [sw, sh]; setCanvas(); };
+  // which format this is, and whether it is the large version
+  const fit = customSize ? null : FORMATS.find(f => f[0] === shape && Math.abs(f[3] / f[4] - ar) < 1e-3 && (w === f[3] || w === f[3] * 2));
+  const large = !!fit && w === fit[3] * 2;
+  $('fmtChips').replaceChildren(...FORMATS.map(f => {
+    const [fs, label, name, fw, fh] = f, custom = fs === 'custom', k = 16 / Math.max(fw, fh, 1), b = document.createElement('button'); b.type = 'button';
+    b.classList.toggle('on', custom ? !fit : f === fit); b.title = custom ? 'Type your own width and height' : `${name}: ${fw} × ${fh} px`;
+    b.innerHTML = `<i>${custom ? '<em style="width:16px;height:12px;border-style:dashed"></em>' : `<em style="width:${fw * k}px;height:${fh * k}px${fs === 'round' ? ';border-radius:50%' : ''}"></em>`}</i><b>${label}</b><small>${name}</small>`;
+    b.onclick = () => {
+      if (custom) { customSize = true; if (shape !== 'rect') { out.rect = [w, h]; $('canvasShape').value = 'rect'; } }
+      else { customSize = false; const m = +$('sizeLarge').value ? 2 : 1; out[fs] = [fw * m, fh * m]; $('canvasShape').value = fs; }
+      setCanvas();
+    };
     return b;
   }));
-  $('exCustom').hidden = shape !== 'rect'; $('exW').value = w; $('exH').value = h;
+  $('exCustom').hidden = !!fit; $('resRow').hidden = !fit; $('exW').value = w; $('exH').value = h;
+  if ($('sizeLarge').value !== String(+large)) $('sizeLarge').value = String(+large);
+  $('sizeNow').textContent = `${w} × ${h} px.`;
   $('exMeta').textContent = shape === 'round' ? `${w} × ${h} px · PNG with see-through corners` : `${w} × ${h} px · PNG`;
   if (!$('exportView').hidden) refreshExport();
 }
-const typed = () => { const n = el => Math.min(4096, Math.max(200, Math.round(+el.value) || 1080)); out.rect = [n($('exW')), n($('exH'))]; setCanvas(); };
+const typed = () => { const n = el => Math.min(4096, Math.max(200, Math.round(+el.value) || 1080)); customSize = true; out.rect = [n($('exW')), n($('exH'))]; $('canvasShape').value = 'rect'; setCanvas(); };
+$('sizeLarge').addEventListener('change', () => {   // Standard or Large: same format, twice the pixels
+  const f = FORMATS.find(f => f[0] === shape && Math.abs(f[3] / f[4] - out[shape][0] / out[shape][1]) < 1e-3); if (!f) return;
+  const m = +$('sizeLarge').value ? 2 : 1; out[shape] = [f[3] * m, f[4] * m]; setCanvas();
+});
 $('exW').onchange = $('exH').onchange = typed;
 $('canvasShape').addEventListener('change', setCanvas);
 const buildExport = (scale = 1) => { const [w, h] = out[shape]; return snapshot(Math.round(w * scale), Math.round(h * scale)); };
