@@ -77,6 +77,9 @@
   .ex-prev { height: min(42vh, 380px); display: grid; place-items: center; border-radius: 20px; background: repeating-conic-gradient(rgba(var(--w),.06) 0 25%, transparent 0 50%) 0 0 / 20px 20px; padding: 14px; }
   .ex-prev img { max-width: 100%; max-height: calc(min(42vh, 380px) - 28px); display: block; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
   .ex-meta { margin: -4px 0 0; text-align: center; color: var(--faint); font: 400 .6875rem var(--mono); }
+  #exChange { border: 0; background: none; padding: 0; font: inherit; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  details.more[hidden] { display: none; }
+  .mode-tabs .segc button { padding-left: 2px; padding-right: 2px; }
   .ex-sizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
   .ex-sizes button { border: 0; border-radius: 16px; background: var(--fill); color: var(--text); padding: 10px; display: grid; gap: 8px; text-align: left; align-content: space-between; min-height: 92px; font: inherit; }
   .ex-sizes button em { display: block; border: 1.5px solid var(--muted); border-radius: 3px; }
@@ -345,7 +348,8 @@
     .mode-tabs { order: 4; flex: none; background: var(--pop); border: 0; border-top: 1px solid var(--hair); padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
     .mode-tabs p { display: none; }
     .mode-tabs .segc { background: transparent; padding: 0; gap: 6px; }
-    .mode-tabs .segc button { padding: 12px 4px; border-radius: 14px; font-size: .9375rem; }
+    .mode-tabs .segc { gap: 2px; }
+    .mode-tabs .segc button { padding: 12px 2px; border-radius: 14px; font-size: .8125rem; }
   }
   /* iPhone zooms the whole page when a field with text smaller than 16px gets focus, and doesn't zoom back. Keep fields at 16px on phones and touch screens. */
   @media (max-width: 900px), (pointer: coarse) {
@@ -376,7 +380,7 @@
     <div id="stepText"><small></small><b></b><span></span></div>
     <button type="button" id="stepNext" class="btn btn-sm btn-primary"></button>
   </div>
-  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V move · B brush · S smudge · E erase · A animate · F export</p>
+  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V move · B brush · S smudge · E erase · C canvas · A animate · F export</p>
   <div id="err">This browser can't run the simulation (WebGL 2 with float textures is required).</div>
 </main>
 
@@ -389,7 +393,8 @@
 
   <div class="mode-tabs">
     <select id="mode" class="seg">
-      <option value="arrange" selected title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
+      <option value="canvas" selected title="Your paper: its size, colours and texture. Change them any time. (C)">Canvas</option>
+      <option value="arrange" title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
       <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
       <option value="animate" title="How the ink moves, and what Play does. (A)">Animate</option>
       <option value="finish" title="Choose a size and save your picture or a video. (F)">Export</option>
@@ -400,7 +405,25 @@
   <div class="panel-scroll">
     <div class="accordion accordion-flush">
 
-      <div class="accordion-item" data-side="paint">
+      <div class="accordion-item" data-side="canvas">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-size"><span class="step"></span>Size<small class="hint">round, square or any frame</small></button></h2>
+        <div id="g-size" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div class="ctl">Canvas
+            <select id="canvasShape" class="seg" title="Shape and size of the canvas. What you see is exactly what is exported.">
+              <option value="round">Round</option>
+              <option value="square">Square</option>
+              <option value="rect">Frame</option>
+            </select>
+          </div>
+          <div class="ex-sizes" id="exSizes"></div>
+          <div class="ctl" id="exCustom">Your own
+            <span class="ex-wh"><input type="number" class="form-control form-control-sm" id="exW" min="200" max="4096" step="1" inputmode="numeric" aria-label="Width in pixels"><i>×</i><input type="number" class="form-control form-control-sm" id="exH" min="200" max="4096" step="1" inputmode="numeric" aria-label="Height in pixels"><i>px</i></span>
+          </div>
+          <p class="note">What you see is what is exported. Making the canvas smaller removes the ink outside it.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="canvas">
         <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-canvas"><span class="step"></span>Colour<small class="hint">paper, inks, palettes</small></button></h2>
         <div id="g-canvas" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
           <div class="preset-box">
@@ -436,12 +459,10 @@
         </fieldset></div></div>
       </div>
 
-      <div class="accordion-item" data-side="paint">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, force, texture</small></button></h2>
-        <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+      <div class="accordion-item" data-side="canvas">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-texture"><span class="step"></span>Texture<small class="hint">dots or liquid, dot size</small></button></h2>
+        <div id="g-texture" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
           <div data-presets="brush"></div>
-          <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
-          <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
           <div class="ctl">Texture
             <select id="shape" class="seg">
               <option value="pixels" title="Ink is drawn as round dots that fuse together">Dots</option>
@@ -449,12 +470,21 @@
             </select>
           </div>
           <label class="ctl" data-when="pixels">Dot size <input type="range" class="form-range" id="pixel" min="0.008" max="0.034" step="0.001" value="0.021" data-top="50"></label>
-          <details class="more"><summary>Fine-tune</summary><div>
-            <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
-            <label class="ctl" data-when="pixels" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
-            <label class="ctl" data-when="pixels" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
-            <label class="ctl" data-when="pixels" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
+          <details class="more" data-when="pixels"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
+            <label class="ctl" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
+            <label class="ctl" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
           </div></details>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, amount, force</small></button></h2>
+        <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
+          <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
+          <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
+          <p class="note">The brush also sets the width of Smudge and the Eraser.</p>
         </fieldset></div></div>
       </div>
 
@@ -602,18 +632,7 @@
   <div class="ex-wrap">
     <div class="ex-head"><h2>Export</h2><button type="button" id="exClose" title="Back to drawing (Esc)"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
     <div class="ex-prev"><img id="exImg" alt="Preview of the exported picture"></div>
-    <p class="ex-meta" id="exMeta"></p>
-    <div class="ctl">Canvas
-      <select id="canvasShape" class="seg" title="Shape and size of the canvas. What you see is exactly what is exported.">
-        <option value="round">Round</option>
-        <option value="square">Square</option>
-        <option value="rect">Frame</option>
-      </select>
-    </div>
-    <div class="ex-sizes" id="exSizes"></div>
-    <div class="ctl" id="exCustom">Your own
-      <span class="ex-wh"><input type="number" class="form-control form-control-sm" id="exW" min="200" max="4096" step="1" inputmode="numeric" aria-label="Width in pixels"><i>×</i><input type="number" class="form-control form-control-sm" id="exH" min="200" max="4096" step="1" inputmode="numeric" aria-label="Height in pixels"><i>px</i></span>
-    </div>
+    <p class="ex-meta"><span id="exMeta"></span> · <button type="button" id="exChange">Change size</button></p>
     <p class="sub">Filter</p>
     <div id="exFilter"></div>
     <label class="ctl">Video
@@ -1568,13 +1587,13 @@ $('lsize').oninput = e => { if (selected && !selected.locked) { selected.size = 
 $('lrot').oninput = e => { if (selected && !selected.locked) { selected.rot = +e.target.value; obsDirty = true; } };
 $('font').onchange = e => { if (selected) selected.font = e.target.value; loadFont(e.target.value).then(renderList); };
 $('centre').onclick = () => { if (selected && !selected.locked) { selected.x = selected.y = .5; obsDirty = true; select(selected, true); } };
-let lastMode = 'arrange';
+let lastMode = $('mode').value;
 const syncMode = () => {
   if ($('mode').value === 'finish') { $('mode').value = lastMode; openExport(); return; }
   const m = lastMode = $('mode').value; ptr = null; overlayDirty = true;
-  setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);
+  setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);   // Move belongs to Letter; every other tab paints
   document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
-  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
+  $('modeNote').textContent = { canvas: 'Your paper: its size, colours and texture. Change them any time.', arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
   document.querySelector('.panel-scroll').scrollTop = 0;
 };
 // tools and tabs stay in step: Move belongs to the Letter tab, the other three to Ink
@@ -1615,17 +1634,18 @@ const placeParts = () => {
 phone.addEventListener('change', placeParts); $('mode').addEventListener('change', ensureOpen); placeParts();
 // the guide walks through the six steps one at a time; each step switches to its tab and opens only its box
 const STEPS = [
+  ['canvas', 'g-size', 'Set up your canvas', 'Canvas', 'Choose round, square or a frame, and its size.'],
+  ['canvas', 'g-canvas', 'Pick your colours', 'Colours', 'Choose light or dark paper, a palette and how many inks.'],
   ['arrange', 'g-letters', 'Place your letter', 'Letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
   ['arrange', 'g-type', 'Choose a typeface', 'Typeface', 'Pick a font, then set its size and rotation.'],
-  ['paint', 'g-canvas', 'Pick your colours', 'Colours', 'Choose a palette and how many inks you want.'],
-  ['paint', 'g-ink', 'Set the brush', 'Brush', 'Try a preset, then adjust size and texture.'],
-  ['animate', 'g-motion', 'Paint, or press Play', 'Animate', 'Drag on the canvas, or let Play shoot puffs of ink, and set how it moves.'],
-  ['finish', null, 'Export', 'Export', 'Choose a size, then save a PNG or record a video.'],
+  ['paint', 'g-ink', 'Paint', 'Paint', 'Set the brush, then drag on the canvas.'],
+  ['animate', 'g-play', 'Press Play', 'Animate', 'Let Play shoot puffs of ink, and set how it moves.'],
+  ['finish', null, 'Export', 'Export', 'Add a filter, then save a PNG or record a video.'],
 ];
 let stepAt = -1;   // -1: not started
 const showStep = () => {
   const [small, b, span] = $('stepText').children, st = STEPS[stepAt];
-  small.textContent = st ? `${stepAt + 1}/${STEPS.length}` : ''; b.textContent = st ? st[phone.matches ? 3 : 2] : 'New here?'; span.textContent = st ? st[4] : 'Six steps from letter to picture.';
+  small.textContent = st ? `${stepAt + 1}/${STEPS.length}` : ''; b.textContent = st ? st[phone.matches ? 3 : 2] : 'New here?'; span.textContent = st ? st[4] : 'Seven steps from canvas to picture.';
   $('stepBack').hidden = stepAt < 1; $('stepNext').textContent = !st ? 'Start' : stepAt === STEPS.length - 1 ? 'Done' : 'Next';
 };
 const goStep = i => {
@@ -1663,7 +1683,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase(), t = { b: 'brush', v: 'move', s: 'smudge', e: 'erase' }[k];
   if (t) setTool(t);
   if (k === 'f') openExport();
-  if (k === 'a') { $('mode').value = 'animate'; $('mode').dispatchEvent(new Event('change')); }
+  if (k === 'a' || k === 'c') { $('mode').value = k === 'a' ? 'animate' : 'canvas'; $('mode').dispatchEvent(new Event('change')); }
 });
 addEventListener('keydown', e => {
   const a = document.activeElement;
@@ -1759,6 +1779,7 @@ const closeExport = () => { $('exportView').hidden = true; closePicker?.(); filt
 $('exFilter').addEventListener('input', refreshExport); $('exFilter').addEventListener('change', refreshExport); $('exFilter').addEventListener('click', () => setTimeout(refreshExport));
 $('export').onclick = openExport; $('exClose').onclick = closeExport;
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('exportView').hidden) closeExport(); });
+$('exChange').onclick = () => { closeExport(); $('mode').value = 'canvas'; $('mode').dispatchEvent(new Event('change')); sideBoxes('canvas').forEach(c => setBox(c, c.id === 'g-size')); };
 $('exRecord').onclick = () => { closeExport(); if (!rec) $('record').click(); };
 $('exSave').onclick = async () => {
   const [w, h] = out[shape], a = document.createElement('a'); a.href = URL.createObjectURL(await buildExport());
