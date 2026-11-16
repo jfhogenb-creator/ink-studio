@@ -260,27 +260,48 @@
   .pk-fields input::-webkit-inner-spin-button { display: none; }
   .pk-fields input:focus { border-color: rgba(var(--w),.25); background: var(--fill-2); }
 
+  /* ---------- phone: an app-like layout. Nothing scrolls but the sheet; the canvas always stays in view ---------- */
   @media (max-width: 900px) {
-    body { flex-direction: column; overflow: auto; height: auto; }
-    main { padding: 12px 0 12px; flex: none; flex-direction: column; position: sticky; z-index: 20; background: var(--bg); }
-    #stage { transform-origin: 50% 100%; transition: none; }
-    #stage { box-shadow: 0 0 0 1px var(--hair); }
-    .panel-foot { position: sticky; bottom: 0; z-index: 10; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--pop);
-      border-radius: 0 0 24px 24px; box-shadow: 0 -10px 30px rgba(0,0,0,.12); }   /* Play, Freeze and Export stay in reach */
+    body { flex-direction: column; overflow: hidden; height: 100dvh; }
+    aside { display: contents; }   /* its parts join the page column: top bar, canvas, actions, sheet, tab bar */
+    /* top bar: name, light/dark, Export (moved here by placeParts) */
+    .brand { order: 0; flex: none; padding: 10px 16px 8px; gap: 10px; }
+    .brand p { display: none; }
+    .brand #export { margin-left: 0 !important; }
+    /* canvas */
+    main { order: 1; flex: none; padding: 4px 16px 0; align-items: flex-start; }
+    #stage { width: min(calc(100vw - 32px), calc(100dvh - 440px)); flex: none; margin: 0; box-shadow: 0 0 0 1px var(--hair), 0 14px 34px rgba(0,0,0,.16); }
+    #toolbar, #keys { display: none; }
+    #frozenBadge { top: auto; bottom: 10px; }
+    #guide { top: -2px; bottom: auto; padding: 4px; gap: 6px; max-width: calc(100% - 24px); box-shadow: 0 6px 20px rgba(0,0,0,.16); background: var(--pop); }
+    #guide #stepText span { display: none; }   /* no room for the instruction */
+    #stepText { padding: 0 2px 0 8px; }
+    #stepBack { width: 28px; height: 28px; }
+    /* actions under the canvas: Play, Freeze, Record, Clear */
+    .panel-foot { order: 2; flex: none; border: 0; padding: 12px 12px 10px; justify-content: center; gap: 8px; }
     .panel-foot kbd { display: none; }
-    #toolbar { position: static; transform: none; margin: 0 0 12px; }
-    #toolbar kbd { display: none; }
-    #stage { width: calc(100vw - 32px); flex: none; margin: 0; }
-    aside { width: auto; flex: none; margin: 0 12px 12px; overflow: visible; }
-    .panel-scroll { overflow: visible; }
-    /* the guide rides in the pinned footer, above Play, Freeze and Export (moved there by placeGuide) */
-    .panel-foot { flex-wrap: wrap; }
-    #guide { position: static; transform: none; flex: 0 0 100%; min-width: 0; max-width: 100%; padding: 0 0 10px; border: 0; border-radius: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none;
-      border-bottom: 1px solid var(--hair); margin-bottom: 2px; }
-    #stepText { flex: 1; padding-left: 4px; }
-    #stepText small:not(:empty) ~ span { display: none; }   /* no room for the instruction next to Back and Next */
-    #keys { display: none; }   /* keyboard shortcuts: no keyboard here */
-    .accordion-item { scroll-margin-top: 38vh; }   /* so a box scrolled to isn't hidden behind the pinned canvas */
+    .panel-foot .btn { background-color: var(--pop); }
+    .panel-foot #playBtn.active { background-color: var(--accent); }
+    .panel-foot #record.active { background-color: #e5252a; }
+    .panel-foot .btn.active:not(#playBtn):not(#record) { background-color: var(--strong); color: var(--on-strong); }
+    /* the sheet: the only part that scrolls */
+    .panel-scroll { order: 3; flex: 1 1 0; min-height: 0; overflow-y: auto; background: var(--pop); border-radius: 24px 24px 0 0; border-top: 1px solid var(--hair);
+      box-shadow: 0 -10px 30px rgba(0,0,0,.08); padding-top: 14px; }
+    /* boxes become chips: one row of names, one box open at a time (see the click handler by placeParts) */
+    .accordion { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+    .accordion-item:not([hidden]) { display: contents; }
+    .accordion-header { order: 1; margin: 0; }
+    .accordion .accordion-item .accordion-button { width: auto; padding: 8px 15px; border-radius: 999px !important; background: var(--fill) !important; color: var(--muted) !important; font-size: .875rem; }
+    .accordion .accordion-item .accordion-button:not(.collapsed) { background: var(--strong) !important; color: var(--on-strong) !important; }
+    .accordion-button::after, .accordion-button .step, .accordion-button .hint { display: none !important; }
+    .accordion-collapse { order: 2; flex: 0 0 100%; min-width: 0; }
+    .accordion-collapse.collapsing { transition: none; }
+    .accordion-body { padding: 10px 2px 18px; }
+    /* tab bar at the bottom */
+    .mode-tabs { order: 4; flex: none; background: var(--pop); border: 0; border-top: 1px solid var(--hair); padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
+    .mode-tabs p { display: none; }
+    .mode-tabs .segc { background: transparent; padding: 0; gap: 6px; }
+    .mode-tabs .segc button { padding: 12px 8px; border-radius: 14px; font-size: .9375rem; }
   }
 </style>
 </head>
@@ -1471,17 +1492,25 @@ $('guides').addEventListener('change', () => { overlayDirty = true; });
 $('canvasShape').addEventListener('change', () => { square = $('canvasShape').value === 'square'; stage.classList.toggle('square', square); });
 // the steps jump to the matching part of the panel; on a phone they live at the top of the panel instead of under the canvas
 const phone = matchMedia('(max-width: 900px)');
-const placeGuide = () => phone.matches ? document.querySelector('.panel-foot').prepend($('guide')) : $('keys').before($('guide'));
-phone.addEventListener('change', placeGuide); placeGuide();
-const pinCanvas = () => {
-  const main = document.querySelector('main');
-  if (!phone.matches) { main.style.top = ''; stage.style.transform = ''; return; }
-  const H = main.offsetHeight, small = Math.round(innerHeight * .36), D = Math.max(0, H - small);   // D: how far the block slides up before it sticks
-  main.style.top = -D + 'px';
-  stage.style.transform = `scale(${Math.min(1, (H - Math.min(scrollY, D) - 24) / stage.offsetWidth)})`;
-  overlayDirty = true;
+// one box open, or closed, without Bootstrap's fold animation
+const setBox = (c, open) => { const btn = c.closest('.accordion-item').querySelector('.accordion-button');
+  c.classList.remove('collapsing'); c.style.height = ''; c.classList.toggle('show', open); btn.classList.toggle('collapsed', !open); btn.setAttribute('aria-expanded', open); };
+const sideBoxes = side => [...document.querySelectorAll(`.accordion-item[data-side=${side}] .accordion-collapse`)];
+// phone: each tab always has exactly one box open, picked with the chips at the top of the sheet
+const ensureOpen = () => { if (!phone.matches) return; const boxes = sideBoxes($('mode').value); if (!boxes.some(c => c.classList.contains('show'))) setBox(boxes[0], true); };
+document.querySelector('.accordion').addEventListener('click', e => {
+  const b = e.target.closest('.accordion-button'); if (!b || !phone.matches) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = b.dataset.bsTarget.slice(1); sideBoxes($(id).closest('.accordion-item').dataset.side).forEach(c => setBox(c, c.id === id));
+  document.querySelector('.panel-scroll').scrollTop = 0;
+}, true);
+// phone layout borrows three parts: the guide floats on the canvas, Export sits in the top bar, Clear joins Play and Freeze
+const placeParts = () => {
+  if (phone.matches) { document.querySelector('main').append($('guide')); document.querySelector('.brand').append($('export')); document.querySelector('.panel-foot').append($('clear')); }
+  else { $('keys').before($('guide')); document.querySelector('.panel-foot').append($('export')); $('toolbar').prepend($('clear')); }
+  ensureOpen(); overlayDirty = true;
 };
-addEventListener('scroll', pinCanvas, { passive: true }); addEventListener('resize', pinCanvas); phone.addEventListener('change', pinCanvas); pinCanvas();
+phone.addEventListener('change', placeParts); $('mode').addEventListener('change', ensureOpen); placeParts();
 // the guide walks through the six steps one at a time; each step switches to its tab and opens only its box
 const STEPS = [
   ['arrange', 'g-letters', 'Place your letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
@@ -1501,12 +1530,10 @@ const goStep = i => {
   stepAt = i >= STEPS.length ? -1 : i; showStep();
   const st = STEPS[stepAt]; if (!st) return;
   $('mode').value = st[0]; $('mode').dispatchEvent(new Event('change'));
-  document.querySelectorAll('.accordion-collapse').forEach(c => {   // only this step's box is open (set directly: no half-finished fold animations)
-    const open = c.id === st[1], btn = c.closest('.accordion-item').querySelector('.accordion-button');
-    c.classList.remove('collapsing'); c.style.height = ''; c.classList.toggle('show', open); btn.classList.toggle('collapsed', !open); btn.setAttribute('aria-expanded', open);
-  });
+  document.querySelectorAll('.accordion-collapse').forEach(c => setBox(c, c.id === st[1]));   // only this step's box is open
+  ensureOpen();
   const item = $(st[1]).closest('.accordion-item'), head = item.querySelector('.accordion-button');
-  item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (phone.matches) document.querySelector('.panel-scroll').scrollTop = 0; else item.scrollIntoView({ behavior: 'smooth', block: 'start' });
   head.classList.remove('nudge'); void head.offsetWidth; head.classList.add('nudge');
 };
 $('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); showStep();
