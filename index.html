@@ -1,0 +1,1614 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ink Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bricolage+Grotesque:wght@800&family=DM+Serif+Display&family=Fraunces:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&family=Inter+Tight:wght@900&family=Space+Grotesk:wght@700&family=Syne:wght@800&family=Unbounded:wght@900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  :root, [data-bs-theme=dark] {
+    --bg: #09090b; --glass: rgba(24, 24, 28, .72); --w: 255,255,255; --hair: rgba(var(--w),.08); --fill: rgba(var(--w),.06); --fill-2: rgba(var(--w),.12);
+    --strong: #fff; --strong-2: #e4e4e7; --on-strong: #0b0b0c; --ring-gap: #17171a; --pop: rgba(28,28,32,.92);
+    --text: #f4f4f5; --muted: #8b8b94; --faint: #5c5c66; --accent: #ff5a1f;
+    --mono: "Geist Mono", ui-monospace, monospace;
+    --bs-body-bg: var(--bg); --bs-body-color: var(--text); --bs-body-font-family: Geist, system-ui, sans-serif;
+    --bs-body-font-size: .8125rem; --bs-border-color: var(--hair); --bs-secondary-color: var(--muted);
+  }
+  [data-bs-theme=light] {
+    --bg: #e9e9ee; --glass: rgba(255,255,255,.8); --w: 0,0,0; --text: #121215; --muted: #5d5d66; --faint: #8e8e98;
+    --strong: #121215; --strong-2: #2c2c31; --on-strong: #fff; --ring-gap: #fff; --pop: rgba(255,255,255,.96);
+  }
+  html, body { height: 100%; }
+  body, aside, .picker { transition: background-color .25s, color .25s; }
+  #themeToggle { margin-left: auto; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); display: grid; place-items: center; padding: 0; flex: 0 0 auto; }
+  #themeToggle:hover { background: var(--fill-2); }
+  #themeToggle svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  body { display: flex; overflow: hidden; -webkit-font-smoothing: antialiased; letter-spacing: -.005em;
+    background:
+      radial-gradient(900px 600px at 18% 12%, rgba(255,90,31,.10), transparent 60%),
+      radial-gradient(800px 700px at 70% 95%, rgba(80,110,255,.10), transparent 60%), var(--bg); }
+  main { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 32px; position: relative; }
+  #stage {
+    position: relative; aspect-ratio: 1; width: min(calc(100vh - 210px), calc(100vw - 470px)); margin-top: -10px;
+    border-radius: 50%; touch-action: none; cursor: crosshair;
+    background: repeating-conic-gradient(#1c1c20 0 25%, #151518 0 50%) 0 0 / 24px 24px;
+    box-shadow: 0 0 0 1px var(--hair), 0 0 0 10px rgba(var(--w),.025), 0 50px 120px rgba(0,0,0,.6);
+    transition: box-shadow .3s;
+  }
+  #stage.frozen { box-shadow: 0 0 0 2px var(--accent), 0 0 0 10px rgba(255,90,31,.12), 0 50px 120px rgba(0,0,0,.6); }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; display: block; }
+  #stage, #stage canvas { transition: border-radius .25s, box-shadow .3s; }
+  #stage.square, #stage.square canvas { border-radius: 14px; }
+  #toolbar .segc { min-width: 150px; }
+  #overlay { pointer-events: none; }
+  /* the guide: one step at a time, Back and Next */
+  #guide { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px; max-width: calc(100% - 32px);
+    border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); z-index: 5; }
+  #stepBack { width: 32px; height: 32px; flex: 0 0 auto; border: 0; border-radius: 50%; background: var(--fill); color: var(--text); display: grid; place-items: center; padding: 0; }
+  #stepBack:hover { background: var(--fill-2); }
+  #stepBack[hidden] { display: none; }
+  #stepBack svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  #stepText { display: flex; align-items: baseline; gap: 10px; min-width: 0; overflow: hidden; padding: 0 6px 0 10px; white-space: nowrap; font-size: .8125rem; }
+  #stepText small { font: 500 .6875rem var(--mono); color: var(--accent); }
+  #stepText small:empty { display: none; }
+  #stepText b { font-weight: 600; color: var(--text); }
+  #stepText span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+  #stepNext { flex: 0 0 auto; }
+  #keys { position: absolute; bottom: 12px; left: 0; right: 0; margin: 0; text-align: center; color: var(--faint); font-size: .6875rem; }
+  @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,31,0); } 30% { box-shadow: 0 0 0 5px rgba(255,90,31,.55); } }
+  .nudge { animation: nudge .9s ease-out 2; }
+  #toolbar { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 5px 16px 5px 5px;
+    border-radius: 999px; background: var(--glass); border: 1px solid var(--hair); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); z-index: 5; }
+  .mode-tabs { padding: 0 16px 12px; border-bottom: 1px solid var(--hair); }
+  .mode-tabs .segc { padding: 4px; border-radius: 14px; }
+  .mode-tabs .segc button { padding: 8px; border-radius: 10px; font-size: .875rem; }
+  .mode-tabs .segc button.on { background: var(--strong); color: var(--on-strong); }
+  .mode-tabs p { margin: 8px 6px 0; color: var(--faint); font-size: .75rem; }
+  .accordion { counter-reset: grp; }
+  .accordion-item[hidden] { display: none; }
+  .accordion-item:not([hidden]) { counter-increment: grp; }
+  .accordion-button .step::before { content: "0" counter(grp); }
+  kbd { background: rgba(var(--w),.1); color: inherit; font: 500 .625rem var(--mono); padding: 2px 6px; border-radius: 6px; margin-left: 6px; opacity: .8; }
+  .btn.active kbd { background: rgba(0,0,0,.15); }
+  #toolbar .guides { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted); cursor: pointer; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tiles button { border: 0; border-radius: 12px; background: var(--fill); color: var(--text); padding: 10px 4px 6px; display: grid; gap: 2px; justify-items: center; transition: background .15s, transform .12s; }
+  .tiles button:hover { background: var(--fill-2); transform: translateY(-2px); }
+  .tiles button b { font-size: 24px; line-height: 1.1; font-weight: inherit; }
+  .tiles button small { font: 400 .5625rem var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .tiles button.on { background: var(--strong); color: var(--on-strong); }
+  .tiles button.on small { color: inherit; opacity: .6; }
+  .chips button.dice { display: inline-grid; place-items: center; padding: 5px 9px; }
+  .chips button.dice svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  hr.sep { border: 0; border-top: 1px solid var(--hair); margin: 6px 0 2px; opacity: 1; }
+  [data-presets], .preset-box { display: grid; gap: 8px; background: var(--fill); border-radius: 16px; padding: 8px 10px 12px 12px; }
+  [data-presets] .chips button, .preset-box .pal { box-shadow: inset 0 0 0 1px rgba(var(--w),.06); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { border: 0; border-radius: 999px; background: var(--fill); color: var(--muted); font: inherit; font-weight: 500; padding: 5px 12px; transition: background .15s, color .15s; }
+  .chips button:hover { background: var(--fill-2); color: var(--text); }
+  .chips button.on { background: var(--strong); color: var(--on-strong); }
+  [data-when][hidden] { display: none; }
+  #letterList { display: grid; gap: 4px; }
+  #letterList:empty::after { content: "No letters yet"; color: var(--faint); font-size: .75rem; padding: 6px 0; }
+  .lrow { display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 5px; border-radius: 12px; background: var(--fill); cursor: pointer; transition: background .15s; }
+  .lrow:hover { background: var(--fill-2); }
+  .lrow.sel { background: var(--fill-2); box-shadow: inset 0 0 0 1px rgba(var(--w),.28); }
+  .lrow .glyph { width: 30px; height: 30px; border-radius: 8px; background: rgba(var(--w),.08); display: grid; place-items: center; font-size: 15px; line-height: 1; overflow: hidden; flex: 0 0 auto; }
+  .lrow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lrow .nm small { display: block; color: var(--faint); font: 400 .625rem var(--mono); }
+  .lrow button { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; flex: 0 0 auto; }
+  .lrow button:hover { background: rgba(var(--w),.1); color: var(--text); }
+  .lrow button.on { color: var(--accent); }
+  .lrow button:disabled { opacity: .3; }
+  .lrow svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  #frozenBadge { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); display: none; background: var(--accent); color: #111;
+    font-weight: 600; font-size: .75rem; padding: 7px 14px; border-radius: 999px; }
+  #err { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; text-align: center; padding: 40px; color: var(--muted); }
+
+  /* floating glass panel */
+  aside { width: 392px; flex: 0 0 392px; margin: 14px 14px 14px 0; border-radius: 24px; background: var(--glass);
+    -webkit-backdrop-filter: blur(28px) saturate(140%); backdrop-filter: blur(28px) saturate(140%);
+    border: 1px solid var(--hair); box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(var(--w),.06);
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .brand { padding: 20px 22px 16px; display: flex; align-items: center; gap: 12px; }
+  .brand .logo { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(from 210deg, var(--accent), #ffb38f, #1d2f9e, var(--accent)); flex: 0 0 auto; }
+  .brand h1 { font: 600 1rem/1.1 Geist, sans-serif; margin: 0; letter-spacing: -.02em; }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: .75rem; }
+  .panel-scroll { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: rgba(var(--w),.14) transparent; }
+  .panel-foot { padding: 14px 16px 16px; border-top: 1px solid var(--hair); display: flex; gap: 8px; align-items: center; }
+
+  .accordion { --bs-accordion-bg: transparent; --bs-accordion-border-color: var(--hair); --bs-accordion-btn-padding-x: 22px; --bs-accordion-btn-padding-y: 14px;
+    --bs-accordion-body-padding-x: 22px; --bs-accordion-body-padding-y: 2px; --bs-accordion-active-bg: transparent; --bs-accordion-active-color: var(--text);
+    --bs-accordion-btn-color: var(--muted); --bs-accordion-btn-focus-box-shadow: none; --bs-accordion-btn-icon-width: 12px;
+    --bs-accordion-btn-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238b8b94' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    --bs-accordion-btn-active-icon: var(--bs-accordion-btn-icon); }
+  .accordion-item { background: transparent; }
+  .accordion-button { font-weight: 500; font-size: .8125rem; gap: 12px; letter-spacing: -.01em; }
+  .accordion-button:hover { color: var(--text); }
+  .accordion-button .step { font: 500 .6875rem var(--mono); color: var(--faint); }
+  .accordion-button:not(.collapsed) .step { color: var(--accent); }
+  .accordion-button:not(.collapsed) { box-shadow: none; }
+  .accordion-body { padding-bottom: 18px; }
+  .accordion-button .hint { display: none; flex: 1; min-width: 0; font-size: .75rem; font-weight: 400; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .accordion-button.collapsed .hint { display: block; }
+  .accordion-button::after { margin-left: auto; flex: 0 0 auto; }
+  /* the tray: your paper with the four inks on it */
+  .tray { border-radius: 16px; padding: 12px; background: var(--fill); }
+  .tray-inks { display: flex; gap: 9px; align-items: center; }
+  .tray-inks .sw { flex: 1; width: auto; height: auto; aspect-ratio: 1; max-width: 52px; font: 500 .625rem var(--mono); color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.9);
+    display: grid; place-items: end center; padding-bottom: 4px; box-shadow: inset 0 0 0 1px rgba(var(--w),.18); }
+  .tray-inks .sw.sel { box-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--strong); }
+  .tray-inks .sw.paper { border-radius: 13px; place-items: center; padding: 0; text-shadow: none; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(var(--w),.3); }
+  .tray-inks .sw.paper svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: .75; }
+  .pal-head { display: flex; align-items: center; justify-content: space-between; color: var(--muted); }
+  .pal-head .tools { display: flex; gap: 2px; }
+  .pal-head button { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; }
+  .pal-head button:hover { background: var(--fill-2); color: var(--text); }
+  .pal-head button:disabled { opacity: .3; }
+  .pal-head svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  details.more summary { color: var(--muted); font-size: .75rem; cursor: pointer; list-style: none; padding: 2px 0; }
+  details.more summary::before { content: "+ "; font-family: var(--mono); }
+  details.more[open] summary::before { content: "− "; }
+  details.more[open] { display: grid; gap: 10px; }
+  .tray-inks .shuf { flex: 0 0 32px; width: 32px; height: 32px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: var(--muted); display: grid; place-items: center; }
+  .tray-inks .shuf:hover { background: var(--fill-2); color: var(--text); }
+  .tray-inks .shuf svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .mini-inks { display: inline-flex; gap: 6px; }
+  .mini-inks button { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px rgba(var(--w),.2); }
+  .mini-inks button.sel { box-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 3.5px var(--strong); }
+  .mode-badge { font: 500 .6875rem var(--mono); padding: 5px 10px; border-radius: 999px; background: var(--fill); color: var(--text); }
+  .tray-pills { display: flex; gap: 8px; }
+  .tray-pills label { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 3px 4px 3px 11px; border-radius: 999px; background: rgba(12,12,14,.82); color: #c9c9d1; font-size: .75rem; }
+  .tray-pills .cpb { background: rgba(var(--w),.1); }
+  fieldset { display: grid; gap: 10px; min-width: 0; transition: opacity .2s; }
+  fieldset:disabled { opacity: .35; }
+  .ctl { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; color: var(--muted); margin: 0; min-height: 28px; }
+  .ctl.has-out { grid-template-columns: 96px 1fr 34px; }
+  .ctl > span { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ctl output { font: 400 .6875rem var(--mono); color: var(--faint); text-align: right; }
+  .sub { font: 500 .625rem var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--faint); margin: 10px 0 0; }
+  .pal-head button.txt { width: auto; padding: 0 9px 0 6px; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: .75rem; }
+  details.more > summary { list-style: none; cursor: pointer; color: var(--muted); font-size: .8125rem; display: inline-flex; align-items: center; gap: 8px; padding: 3px 10px 3px 6px; margin-left: -6px; border-radius: 999px; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font: 500 .75rem var(--mono); width: 18px; height: 18px; border-radius: 50%; background: var(--fill-2); color: var(--text); display: inline-grid; place-items: center; }
+  details.more[open] > summary::before { content: "–"; }
+  details.more > summary:hover { background: var(--fill); color: var(--text); }
+  details.more > div { display: grid; gap: 10px; padding-top: 10px; }
+  .ctl.off { opacity: .35; pointer-events: none; }   /* a control that does nothing right now */
+  #playBtn { display: inline-flex; align-items: center; gap: 7px; }
+  #record { display: inline-flex; align-items: center; gap: 7px; padding-left: 12px; padding-right: 12px; font-variant-numeric: tabular-nums; }
+  #record i { width: 12px; height: 12px; border-radius: 50%; background: #e5252a; display: block; transition: border-radius .15s; }
+  #record span:empty { display: none; }
+  #record.active { background: #e5252a; border-color: #e5252a; color: #fff; }
+  .panel-foot:has(#record.active) kbd { display: none; }   /* make room for the timer */
+  #record.active i { background: #fff; border-radius: 2px; }   /* a square: stop */
+  #playBtn svg { width: 13px; height: 13px; fill: currentColor; }
+  .note { color: var(--faint); font-size: .75rem; margin: 2px 0 0; line-height: 1.45; }
+
+  /* sliders */
+  .form-range { height: 20px; background: transparent; }
+  .form-range::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: rgba(var(--w),.14); }
+  .form-range::-webkit-slider-thumb { width: 14px; height: 14px; margin-top: -6px; background: var(--strong); border: 0; box-shadow: 0 0 0 4px rgba(var(--w),0), 0 2px 6px rgba(0,0,0,.5); transition: box-shadow .15s; }
+  .form-range:hover::-webkit-slider-thumb, .form-range:active::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(var(--w),.12), 0 2px 6px rgba(0,0,0,.5); background: var(--strong); }
+  .form-range::-moz-range-track { height: 2px; background: rgba(var(--w),.14); }
+  .form-range::-moz-range-thumb { width: 14px; height: 14px; background: var(--strong); border: 0; }
+  .form-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(var(--w),.16); }
+  .form-range:disabled { opacity: .4; }
+
+  /* fields */
+  .form-select, .form-control { background-color: var(--fill); border: 1px solid transparent; border-radius: 10px; font-size: .8125rem; color: var(--text); }
+  .form-select { --bs-form-select-bg-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238b8b94' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E"); background-size: 12px; }
+  .form-control::placeholder { color: var(--faint); }
+  .form-select:focus, .form-control:focus { background-color: var(--fill-2); border-color: rgba(var(--w),.22); box-shadow: none; color: var(--text); }
+  .form-check-input { background-color: var(--fill-2); border: 0; width: 2.1em !important; height: 1.2em; cursor: pointer; }
+  .form-check-input:focus { box-shadow: 0 0 0 3px rgba(var(--w),.12); }
+  .form-check-input:checked { background-color: var(--accent); }
+
+  /* buttons */
+  .btn { --bs-btn-font-size: .8125rem; --bs-btn-border-radius: 999px; --bs-btn-padding-x: 14px; --bs-btn-font-weight: 500; border: 0; }
+  .btn-sm { --bs-btn-padding-y: 6px; }
+  .btn-primary { --bs-btn-bg: var(--strong); --bs-btn-color: var(--on-strong); --bs-btn-hover-bg: var(--strong-2); --bs-btn-hover-color: var(--on-strong); --bs-btn-active-bg: var(--strong-2); --bs-btn-active-color: var(--on-strong);
+    --bs-btn-disabled-bg: var(--strong); --bs-btn-disabled-color: var(--on-strong); }
+  .btn-outline-secondary { --bs-btn-color: var(--text); --bs-btn-bg: var(--fill); --bs-btn-hover-bg: var(--fill-2); --bs-btn-hover-color: var(--text);
+    --bs-btn-active-bg: var(--accent); --bs-btn-active-color: #111; --bs-btn-disabled-color: var(--faint); --bs-btn-disabled-bg: var(--fill); }
+  .btn:focus-visible { box-shadow: 0 0 0 3px rgba(var(--w),.2); }
+  .add-row { display: flex; gap: 8px; }
+  .add-row .form-control { border-radius: 999px; padding-left: 14px; }
+
+  /* segmented control (built from <select class="seg">) */
+  .segc { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; gap: 2px; background: var(--fill); border-radius: 11px; }
+  .segc button { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 500; padding: 5px 8px; border-radius: 8px; transition: background .15s, color .15s; }
+  .segc button:hover { color: var(--text); }
+  .segc button.on { background: var(--fill-2); color: var(--text); box-shadow: inset 0 1px 0 rgba(var(--w),.08); }
+
+  /* colour swatches + picker */
+  .swatches { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .sw { width: 24px; height: 24px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px rgba(var(--w),.2); transition: transform .12s; }
+  .sw:hover { transform: scale(1.12); }
+  .sw.sel { box-shadow: inset 0 0 0 1px rgba(var(--w),.2), 0 0 0 2px var(--ring-gap), 0 0 0 3.5px var(--strong); }
+  #palettes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pal { border: 0; border-radius: 12px; padding: 8px 8px 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; box-shadow: inset 0 0 0 1px rgba(var(--w),.12); transition: transform .12s; }
+  .pal:hover { transform: translateY(-2px); }
+  .pal.sel { box-shadow: 0 0 0 2px var(--ring-gap), 0 0 0 3.5px var(--strong); }
+  .pal i { aspect-ratio: 1; border-radius: 50%; }
+  .pal span { grid-column: 1 / -1; font: 500 .625rem var(--mono); margin-top: 4px; text-align: left; white-space: nowrap; overflow: hidden; }
+  .cpb { display: inline-flex; align-items: center; gap: 8px; border: 0; background: var(--fill); color: var(--text); border-radius: 999px; padding: 4px 11px 4px 5px;
+    font: 400 .6875rem var(--mono); text-transform: uppercase; transition: background .15s; }
+  .cpb:hover, .cpb.open { background: var(--fill-2); }
+  .cpb i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(var(--w),.25); }
+  .cpb:disabled { color: var(--faint); }
+  .picker { position: fixed; z-index: 50; width: 256px; padding: 12px; border-radius: 18px; background: var(--pop);
+    -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid rgba(var(--w),.1); box-shadow: 0 24px 60px rgba(0,0,0,.6); display: grid; gap: 10px; }
+  .picker[hidden] { display: none; }
+  .pk-sv { position: relative; height: 150px; border-radius: 10px; cursor: crosshair; touch-action: none;
+    background-image: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent); }
+  .pk-sv i { position: absolute; width: 14px; height: 14px; margin: -7px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.4); pointer-events: none; }
+  .pk-hue { -webkit-appearance: none; appearance: none; width: 100%; height: 12px; border-radius: 999px; margin: 0; outline: 0;
+    background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+  .pk-hue::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.5); }
+  .pk-hue::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 0; }
+  .pk-head { display: flex; align-items: center; gap: 10px; }
+  .pk-prev { width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto; box-shadow: inset 0 0 0 1px rgba(var(--w),.2); }
+  .pk-head .segc { flex: 1; }
+  .pk-head .segc button { font: 500 .6875rem var(--mono); padding: 5px 0; }
+  .pk-fields { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+  .pk-fields label { display: grid; gap: 4px; font: 500 .625rem var(--mono); color: var(--faint); text-align: center; margin: 0; }
+  .pk-fields input { width: 100%; background: var(--fill); border: 1px solid transparent; border-radius: 8px; color: var(--text); font: 400 .75rem var(--mono); padding: 6px 4px; text-align: center; outline: 0; -moz-appearance: textfield; }
+  .pk-fields input::-webkit-inner-spin-button { display: none; }
+  .pk-fields input:focus { border-color: rgba(var(--w),.25); background: var(--fill-2); }
+
+  @media (max-width: 900px) {
+    body { flex-direction: column; overflow: auto; height: auto; }
+    main { padding: 12px 0 12px; flex: none; flex-direction: column; position: sticky; z-index: 20; background: var(--bg); }
+    #stage { transform-origin: 50% 100%; transition: none; }
+    #stage { box-shadow: 0 0 0 1px var(--hair); }
+    .panel-foot { position: sticky; bottom: 0; z-index: 10; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--pop);
+      border-radius: 0 0 24px 24px; box-shadow: 0 -10px 30px rgba(0,0,0,.12); }   /* Play, Freeze and Export stay in reach */
+    .panel-foot kbd { display: none; }
+    #toolbar { position: static; transform: none; margin: 0 0 12px; }
+    #toolbar kbd { display: none; }
+    #stage { width: calc(100vw - 32px); flex: none; margin: 0; }
+    aside { width: auto; flex: none; margin: 0 12px 12px; overflow: visible; }
+    .panel-scroll { overflow: visible; }
+    /* the guide rides in the pinned footer, above Play, Freeze and Export (moved there by placeGuide) */
+    .panel-foot { flex-wrap: wrap; }
+    #guide { position: static; transform: none; flex: 0 0 100%; min-width: 0; max-width: 100%; padding: 0 0 10px; border: 0; border-radius: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+      border-bottom: 1px solid var(--hair); margin-bottom: 2px; }
+    #stepText { flex: 1; padding-left: 4px; }
+    #stepText small:not(:empty) ~ span { display: none; }   /* no room for the instruction next to Back and Next */
+    #keys { display: none; }   /* keyboard shortcuts: no keyboard here */
+    .accordion-item { scroll-margin-top: 38vh; }   /* so a box scrolled to isn't hidden behind the pinned canvas */
+  }
+</style>
+</head>
+<body>
+<main>
+  <div id="toolbar">
+    <button class="btn btn-sm btn-outline-secondary" id="clear" type="button" title="Wipe all ink off the canvas. Letters stay. (Backspace)">Clear <kbd>⌫</kbd></button>
+    <label class="guides"><span class="form-check form-switch m-0 p-0"><input class="form-check-input m-0" type="checkbox" role="switch" id="guides" checked></span>Guides</label>
+  </div>
+  <span id="frozenBadge">Ink frozen · Space to continue</span>
+  <div id="stage">
+    <canvas id="gl" width="1024" height="1024"></canvas>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div id="guide">
+    <button type="button" id="stepBack" title="Previous step"><svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+    <div id="stepText"><small></small><b></b><span></span></div>
+    <button type="button" id="stepNext" class="btn btn-sm btn-primary"></button>
+  </div>
+  <p id="keys">Space freezes · R records · Backspace clears · 1–5 pick an ink · V letter · B ink · F finish</p>
+  <div id="err">This browser can't run the simulation (WebGL 2 with float textures is required).</div>
+</main>
+
+<aside>
+  <div class="brand">
+    <span class="logo"></span>
+    <div><h1>Ink Studio</h1><p>Ink portraits for profile photos</p></div>
+    <button type="button" id="themeToggle"></button>
+  </div>
+
+  <div class="mode-tabs">
+    <select id="mode" class="seg">
+      <option value="arrange" selected title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
+      <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
+      <option value="finish" title="Filter, shape and size of the finished picture. (F)">Finish</option>
+    </select>
+    <p id="modeNote"></p>
+  </div>
+
+  <div class="panel-scroll">
+    <div class="accordion accordion-flush">
+
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-canvas"><span class="step"></span>Colour<small class="hint">paper, inks, palettes</small></button></h2>
+        <div id="g-canvas" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div class="preset-box">
+          <div class="pal-head">
+            <span>Presets</span>
+            <span class="tools">
+              <button type="button" id="palPrev" title="Previous palettes"><svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+              <button type="button" id="palNext" title="More palettes"><svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+              <button type="button" class="txt" id="surprise" title="Shuffle: eight new palettes that suit your paper"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle cx="5.7" cy="5.7" r=".6"/><circle cx="10.3" cy="10.3" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="10.3" cy="5.7" r=".6"/><circle cx="5.7" cy="10.3" r=".6"/></svg>Shuffle</button>
+              <button type="button" class="txt" id="classics" title="Back to the built-in palettes"><svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.6h2.6"/></svg>Reset</button>
+            </span>
+          </div>
+          <div id="palettes"></div>
+          </div>
+          <div class="tray" id="tray"><div class="tray-inks" id="inkSwatches"></div></div>
+          <div class="ctl">Inks
+            <select id="inkCount" class="seg" title="How many different inks your drawing uses">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option>
+            </select>
+          </div>
+          <p class="note">Click an ink to paint with it, click again to recolour it. The square is the paper.</p>
+          <span hidden>
+            <input type="color" class="cp" id="paperCustom" value="#f4efe6">
+            <input type="color" class="cp" id="inkCustom" value="#14151a">
+            <select id="blend"><option value="ink">ink</option><option value="light">light</option></select>
+          </span>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, force, texture</small></button></h2>
+        <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <div data-presets="brush"></div>
+          <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
+          <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
+          <div class="ctl">Texture
+            <select id="shape" class="seg">
+              <option value="pixels" title="Ink is drawn as round dots that fuse together">Dots</option>
+              <option value="smooth" title="Ink is drawn as soft, continuous liquid">Liquid</option>
+            </select>
+          </div>
+          <label class="ctl" data-when="pixels">Dot size <input type="range" class="form-range" id="pixel" min="0.008" max="0.034" step="0.001" value="0.021" data-top="50"></label>
+          <details class="more"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
+            <label class="ctl" data-when="pixels" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
+            <label class="ctl" data-when="pixels" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
+            <label class="ctl" data-when="pixels" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
+          </div></details>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="paint">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-motion"><span class="step"></span>Animate<small class="hint">curl, momentum, gravity</small></button></h2>
+        <div id="g-motion" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <div data-presets="animate"></div>
+          <label class="ctl" title="How much the ink curls into small swirls">Curl <input type="range" class="form-range" id="swirl" min="0" max="50" step="1" value="0"></label>
+          <label class="ctl" title="How long the ink keeps moving after a stroke">Momentum <input type="range" class="form-range" id="momentum" min="0" max="1" step="0.01" value="0.5"></label>
+          <details class="more"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="Random gusts that push the ink about">Turbulence <input type="range" class="form-range" id="turb" min="0" max="1" step="0.01" value="0"></label>
+            <label class="ctl" title="Turns the whole canvas round its middle: left of centre is anticlockwise, right is clockwise">Spin <input type="range" class="form-range" id="spin" min="-1" max="1" step="0.01" value="0"></label>
+            <label class="ctl" title="Pulls the ink in one direction">Gravity <input type="range" class="form-range" id="grav" min="0" max="1" step="0.01" value="0"></label>
+            <label class="ctl" data-when="grav" title="Which way gravity pulls: 0° is down, 180° is up">Direction <input type="range" class="form-range" id="gravDir" min="0" max="360" step="5" value="0" data-unit="°"></label>
+            <label class="ctl" title="Ink slowly disappears">Fade <input type="range" class="form-range" id="fade" min="0" max="1" step="0.01" value="0"></label>
+          </div></details>
+          <p class="sub">While playing</p>
+          <div class="ctl" title="Each puff uses the next ink in your tray">Flip through inks <span class="form-check form-switch m-0 p-0"><input class="form-check-input m-0" type="checkbox" role="switch" id="dripCycle"></span></div>
+          <label class="ctl" title="How many puffs are shot in at a time">How many <input type="range" class="form-range" id="dripCount" min="1" max="8" step="1" value="1" data-unit="×"></label>
+          <label class="ctl" title="How quickly the puffs follow each other">How fast <input type="range" class="form-range" id="dripRate" min="0" max="1" step="0.01" value="0.4"></label>
+          <p class="note">Play, next to Freeze below, keeps shooting puffs of ink in from the edge.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="arrange">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-letters"><span class="step"></span>Letters<small class="hint">add, find, lock, colour</small></button></h2>
+        <div id="g-letters" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <div class="add-row">
+            <input type="text" class="form-control form-control-sm" id="text" maxlength="12" placeholder="Type a letter or word">
+            <button class="btn btn-sm btn-primary" id="add">Add</button>
+          </div>
+          <div id="letterList"></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary flex-fill" id="centre" type="button" disabled>Centre selected</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" id="delAll" type="button">Remove all</button>
+          </div>
+          <div class="ctl" title="One colour for all letters">Colour
+            <span>
+              <input type="color" class="cp" id="letterColor" value="#14151a" title="Letter colour">
+              <button class="btn btn-sm btn-outline-secondary" id="matchPaper" type="button" title="Letters stay the colour of the paper, so they read as empty space in the ink">Match paper</button>
+            </span>
+          </div>
+          <p class="note">Click a row to find a letter, then drag it on the canvas. The colour is shared by all letters.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="arrange">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-type"><span class="step"></span>Typography<small class="hint">font, size, rotation</small></button></h2>
+        <div id="g-type" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <div data-presets="type"></div>
+          <label class="ctl">Font
+            <select id="font" class="form-select form-select-sm">
+              <option value='400|"Archivo Black", sans-serif'>Archivo Black</option>
+              <option value='900|"Unbounded", sans-serif'>Unbounded</option>
+              <option value='800|"Bricolage Grotesque", sans-serif'>Bricolage Grotesque</option>
+              <option value='700|"Space Grotesk", sans-serif'>Space Grotesk</option>
+              <option value='800|"Syne", sans-serif'>Syne</option>
+              <option value='400|"Anton", sans-serif'>Anton</option>
+              <option value='900|"Fraunces", serif'>Fraunces</option>
+              <option value='400|"DM Serif Display", serif'>DM Serif Display</option>
+              <option value='400|"Instrument Serif", serif'>Instrument Serif</option>
+              <option value='900|"Inter Tight", sans-serif'>Inter Tight</option>
+              <option value='700|Helvetica, "Helvetica Neue", Arial, sans-serif'>Helvetica Bold</option>
+            </select>
+          </label>
+          <label class="ctl">Size <input type="range" class="form-range" id="lsize" min="0.08" max="1" step="0.01" value="0.55"></label>
+          <label class="ctl">Rotation <input type="range" class="form-range" id="lrot" min="-180" max="180" step="1" value="0" data-unit="°"></label>
+          <p class="note">Applies to the selected letter, or to every letter when none is selected.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="arrange">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-body"><span class="step"></span>Edges<small class="hint">dots or flat, hollow, bleed</small></button></h2>
+        <div id="g-body" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
+          <div data-presets="edges"></div>
+          <div class="ctl">Style
+            <select id="lstyle" class="seg">
+              <option value="blob" title="The letter is built from the same dots as the ink">Dots</option>
+              <option value="flat" title="The letter is a crisp shape on top of the ink">Flat</option>
+            </select>
+          </div>
+          <div class="ctl">Body
+            <select id="body" class="seg">
+              <option value="hollow" title="Outline only: ink can go inside">Hollow</option>
+              <option value="solid" title="Filled: ink goes around">Solid</option>
+            </select>
+          </div>
+          <label class="ctl">Openings <input type="range" class="form-range" id="gaps" min="0" max="1" step="0.01" value="0" title="How many openings the outline has: none at 0, a few large stretches, up to many small ones"></label>
+          <details class="more"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="How thick the outline is">Wall <input type="range" class="form-range" id="wall" min="0.006" max="0.05" step="0.001" value="0.014"></label>
+            <label class="ctl" title="How wide each opening is, compared with the wall between openings">Opening width <input type="range" class="form-range" id="gapw" min="0.05" max="0.92" step="0.01" value="0.35"></label>
+            <label class="ctl" title="Lets ink seep through the letter's walls">Bleed <input type="range" class="form-range" id="bleed" min="0" max="1" step="0.01" value="0"></label>
+          </div></details>
+          <p class="note">Applies to the selected letter, or to every letter when none is selected.</p>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="finish">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-filter"><span class="step"></span>Filter layer<small class="hint">halftone, kaleidoscope, grain</small></button></h2>
+        <div id="g-filter" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div data-presets="filter"></div>
+          <label class="ctl">Filter
+            <select id="filter" class="form-select form-select-sm">
+              <option value="0">None</option>
+              <option value="1">Halftone</option>
+              <option value="2">Duotone</option>
+              <option value="3">Posterize</option>
+              <option value="4">Invert</option>
+              <option value="5">Ripple glass</option>
+              <option value="6">Kaleidoscope</option>
+              <option value="7">Twist</option>
+              <option value="12">Mirror</option>
+              <option value="8">Misprint (colour split)</option>
+              <option value="9">Emboss</option>
+              <option value="10">Linocut outlines</option>
+              <option value="11">Scanlines</option>
+            </select>
+          </label>
+          <label class="ctl" data-when="filter">Strength <input type="range" class="form-range" id="famt" min="0" max="1" step="0.01" value="0.6"></label>
+          <div class="ctl" data-when="duotone">Duotone tint <span><input type="color" class="cp" id="fcol" value="#c8102e" title="Duotone tint"></span></div>
+          <label class="ctl">Grain <input type="range" class="form-range" id="grain" min="0" max="1" step="0.01" value="0"></label>
+        </fieldset></div></div>
+      </div>
+
+      <div class="accordion-item" data-side="finish">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-output"><span class="step"></span>Picture<small class="hint">shape, size</small></button></h2>
+        <div id="g-output" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
+          <div class="ctl">Shape
+            <select id="canvasShape" class="seg" title="Shape of the canvas and of the exported picture">
+              <option value="round">Round</option>
+              <option value="square">Square</option>
+            </select>
+          </div>
+          <label class="ctl">Size
+            <select id="exportSize" class="form-select form-select-sm" title="Size of the exported picture">
+              <optgroup label="Profile photo">
+                <option value="round:1024|profile" selected>Profile · 1024</option>
+                <option value="round:320|instagram-profile">Instagram profile · 320</option>
+                <option value="round:800|youtube-channel">YouTube channel icon · 800</option>
+                <option value="round:400|x-profile">X profile · 400</option>
+                <option value="round:400|linkedin-profile">LinkedIn profile · 400</option>
+                <option value="round:200|tiktok-profile">TikTok profile · 200</option>
+                <option value="round:512|discord-avatar">Discord avatar · 512</option>
+                <option value="round:2048|profile-large">Large · 2048</option>
+              </optgroup>
+              <optgroup label="Posts and covers (on paper)">
+                <option value="rect:1080x1080|instagram-post">Instagram post · 1080×1080</option>
+                <option value="rect:1080x1350|instagram-portrait">Instagram portrait · 1080×1350</option>
+                <option value="rect:1080x1920|story">Story / Reel / TikTok · 1080×1920</option>
+                <option value="rect:1280x720|youtube-thumbnail">YouTube thumbnail · 1280×720</option>
+                <option value="rect:2560x1440|youtube-banner">YouTube banner · 2560×1440</option>
+                <option value="rect:1500x500|x-header">X header · 1500×500</option>
+                <option value="rect:1584x396|linkedin-banner">LinkedIn banner · 1584×396</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="ctl">Video
+            <select id="recLength" class="form-select form-select-sm" title="When a recording finishes">
+              <option value="0" selected>Until I press stop</option>
+              <option value="5">Stops after 5 seconds</option>
+              <option value="10">Stops after 10 seconds</option>
+              <option value="15">Stops after 15 seconds</option>
+              <option value="30">Stops after 30 seconds</option>
+              <option value="60">Stops after 60 seconds</option>
+            </select>
+          </label>
+          <p class="note">Export saves a PNG at this size. The red button records a 1080 × 1080 video: press it to start and again to finish, or pick a length here.</p>
+        </fieldset></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="panel-foot">
+    <label class="btn btn-outline-secondary" id="playBtn" title="Keeps shooting puffs of ink in from the edge. Set how many and how fast under Ink, Animate."><input type="checkbox" id="drips" hidden><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg><span>Play</span></label>
+    <button class="btn btn-outline-secondary" id="pause" title="Stops the ink where it is. Everything stays editable. (Space)">Freeze <kbd>Space</kbd></button>
+    <button class="btn btn-outline-secondary" id="record" type="button" title="Record a video of the canvas: click to start, click again to finish and save it. (R)"><i></i><span></span></button>
+    <button class="btn btn-primary ms-auto" id="export">Export</button>
+  </div>
+</aside>
+
+<div class="picker" id="picker" hidden>
+  <div class="pk-sv"><i></i></div>
+  <input type="range" class="pk-hue" min="0" max="360" step="1" aria-label="Hue">
+  <div class="pk-head"><span class="pk-prev"></span><div class="segc" id="pkModes"></div></div>
+  <div class="pk-fields"></div>
+</div>
+
+<script>
+/* ---------- panel widgets: colour picker, segmented controls, slider readouts ---------- */
+(() => {
+  // run cb whenever el.value changes, including when a script sets it
+  const watchValue = (el, cb) => {
+    const d = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value');
+    Object.defineProperty(el, 'value', { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, v); cb(); } });
+    el.addEventListener('input', cb); el.addEventListener('change', cb);
+  };
+
+  // sliders: live readout
+  document.querySelectorAll('.ctl input[type=range]').forEach(r => {
+    const out = document.createElement('output'), unit = r.dataset.unit;
+    const show = () => { out.textContent = unit ? Math.round(r.value) + unit : +r.min < 0 ? Math.round(r.value / r.max * 100) : Math.round((r.value - r.min) / (r.max - r.min) * (+r.dataset.top || 100)); };
+    r.parentElement.classList.add('has-out'); r.after(out); watchValue(r, show); show();
+  });
+
+  // <select class="seg"> becomes a segmented control; the select stays the source of truth
+  document.querySelectorAll('select.seg').forEach(sel => {
+    const g = document.createElement('div'); g.className = 'segc';
+    const sync = () => [...g.children].forEach((b, i) => b.classList.toggle('on', sel.options[i].value === sel.value));
+    [...sel.options].forEach(o => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = o.text; if (o.title) b.title = o.title;
+      b.onclick = () => { sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); };
+      g.append(b);
+    });
+    sel.hidden = true; sel.after(g); watchValue(sel, sync); sync();
+  });
+
+  // colour maths
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgb2hex = c => '#' + c.map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
+  const hsv2rgb = (h, s, v) => { const f = n => { const k = (n + h / 60) % 6; return 255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1))); }; return [f(5), f(3), f(1)]; };
+  const rgb2hsv = ([r, g, b]) => {
+    r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+    let h = 0; if (d) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h * 60, mx ? d / mx : 0, mx];
+  };
+  const hsv2hsl = (h, s, v) => { const l = v * (1 - s / 2); return [h, l === 0 || l === 1 ? 0 : (v - l) / Math.min(l, 1 - l), l]; };
+  const hsl2hsv = (h, s, l) => { const v = l + s * Math.min(l, 1 - l); return [h, v ? 2 * (1 - l / v) : 0, v]; };
+
+  // one shared picker popover
+  const pk = document.getElementById('picker'), sv = pk.querySelector('.pk-sv'), dot = sv.querySelector('i'), hue = pk.querySelector('.pk-hue');
+  const prev = pk.querySelector('.pk-prev'), fields = pk.querySelector('.pk-fields'), modes = document.getElementById('pkModes');
+  let target = null, btn = null, H = 0, S = 0, V = 0, mode = 'HEX';
+  ['HEX', 'RGB', 'HSV', 'HSL'].forEach(m => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = m;
+    b.onclick = () => { mode = m; draw(); }; modes.append(b);
+  });
+  const SPEC = {
+    RGB: { labels: ['R', 'G', 'B'], max: [255, 255, 255], get: () => hsv2rgb(H, S, V), set: v => { [H, S, V] = rgb2hsv(v); } },
+    HSV: { labels: ['H', 'S', 'V'], max: [360, 100, 100], get: () => [H, S * 100, V * 100], set: v => { H = v[0]; S = v[1] / 100; V = v[2] / 100; } },
+    HSL: { labels: ['H', 'S', 'L'], max: [360, 100, 100], get: () => { const c = hsv2hsl(H, S, V); return [c[0], c[1] * 100, c[2] * 100]; }, set: v => { [H, S, V] = hsl2hsv(v[0], v[1] / 100, v[2] / 100); } },
+  };
+  function draw() {
+    const hexv = rgb2hex(hsv2rgb(H, S, V));
+    sv.style.backgroundColor = `hsl(${H} 100% 50%)`; dot.style.left = S * 100 + '%'; dot.style.top = (1 - V) * 100 + '%';
+    hue.value = H; prev.style.background = hexv;
+    [...modes.children].forEach(b => b.classList.toggle('on', b.textContent === mode));
+    fields.innerHTML = '';
+    if (mode === 'HEX') {
+      const l = document.createElement('label'), i = document.createElement('input');
+      i.type = 'text'; i.value = hexv.toUpperCase(); i.maxLength = 7; i.spellcheck = false;
+      i.onchange = () => { let t = i.value.trim().replace(/^#?/, '#'); if (/^#[0-9a-f]{3}$/i.test(t)) t = '#' + [...t.slice(1)].map(c => c + c).join('');
+        if (/^#[0-9a-f]{6}$/i.test(t)) { [H, S, V] = rgb2hsv(hex2rgb(t)); commit(); } else draw(); };
+      l.append(i, 'HEX'); fields.append(l);
+    } else {
+      const sp = SPEC[mode], vals = sp.get().map(Math.round), ins = [];
+      sp.labels.forEach((name, k) => {
+        const l = document.createElement('label'), i = document.createElement('input');
+        i.type = 'number'; i.min = 0; i.max = sp.max[k]; i.value = vals[k]; ins.push(i);
+        i.onchange = () => { sp.set(ins.map((x, j) => clamp(+x.value || 0, 0, sp.max[j]))); commit(); };
+        l.append(i, name); fields.append(l);
+      });
+    }
+  }
+  function commit() {
+    draw();
+    if (target) { target.value = rgb2hex(hsv2rgb(H, S, V)); target.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+  const svAt = e => { const r = sv.getBoundingClientRect(); S = clamp((e.clientX - r.left) / r.width, 0, 1); V = 1 - clamp((e.clientY - r.top) / r.height, 0, 1); commit(); };
+  sv.addEventListener('pointerdown', e => { sv.setPointerCapture(e.pointerId); svAt(e); });
+  sv.addEventListener('pointermove', e => { if (sv.hasPointerCapture(e.pointerId)) svAt(e); });
+  hue.addEventListener('input', () => { H = +hue.value; commit(); });
+
+  function close() { pk.hidden = true; btn && btn.classList.remove('open'); target = btn = null; }
+  function open(input, b) {
+    if (target === input) return close();
+    close(); target = input; btn = b; b.classList.add('open');
+    [H, S, V] = rgb2hsv(hex2rgb(input.value)); pk.hidden = false; draw();
+    const r = b.getBoundingClientRect(), w = pk.offsetWidth, h = pk.offsetHeight;
+    pk.style.left = clamp(r.left, 8, innerWidth - w - 8) + 'px';
+    pk.style.top = (r.bottom + 8 + h > innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 8) + 'px';
+  }
+  addEventListener('pointerdown', e => { if (!pk.hidden && !pk.contains(e.target) && !e.target.closest('.cpb, .tray')) close(); });
+  window.openPicker = open; window.closePicker = close; window.watchValue = watchValue;
+  addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  addEventListener('resize', close);
+  document.querySelector('.panel-scroll').addEventListener('scroll', close);
+
+  // every colour field becomes a swatch + hex pill that opens the picker
+  document.querySelectorAll('input.cp').forEach(input => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'cpb'; b.title = input.title;
+    const chip = document.createElement('i'), txt = document.createElement('span'); b.append(chip, txt);
+    const sync = () => { chip.style.background = input.value; txt.textContent = input.value; };
+    input.type = 'hidden'; input.after(b); watchValue(input, sync); sync();
+    b.onclick = () => open(input, b);
+  });
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const SIM = 384, DYE = 1024, OBS = 2048, FORCE = 15000;
+const canvas = $('gl'), overlay = $('overlay'), stage = $('stage');
+const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
+if (!gl || !(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'))) {
+  stage.style.display = 'none'; $('guide').style.display = 'none'; $('err').style.display = 'flex'; return;
+}
+
+/* ---------- shaders ---------- */
+const VERT = `#version 300 es
+in vec2 aPos; out vec2 vUv;
+void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.,1.); }`;
+const HEAD = `#version 300 es
+precision highp float; precision highp sampler2D;
+in vec2 vUv; out vec4 o;
+uniform sampler2D uObs; uniform vec2 uTexel; uniform float uSquare;
+// distance to the canvas edge: a circle, or a square when uSquare is on (0.5 = the edge)
+float rim(vec2 uv){ vec2 p = abs(uv - .5); return uSquare > .5 ? max(p.x, p.y) : length(p); }
+float solid(vec2 uv){ return max(step(0.492, rim(uv)), step(0.5, texture(uObs, uv).r)); }
+`;
+const DYE_FN = `    uniform sampler2D uDist; uniform vec3 uHaloInk; uniform float uHaloOn, uReach, uSoft, uLBlob, uHaloAmt, uSpeck;
+    // ink near a letter keeps its density but takes the halo colour
+    uniform sampler2D uDye2; uniform vec3 uInk[5];
+    // two ink textures hold the amounts of up to five tray inks (four in the first, the fifth in the second); the palette turns them into colour here
+    vec3 dyeAt(vec2 uv){
+      vec4 a = max(texture(uDye, uv), 0.);
+      vec3 d = a.x * uInk[0] + a.y * uInk[1] + a.z * uInk[2] + a.w * uInk[3] + max(texture(uDye2, uv).r, 0.) * uInk[4];
+      if (uHaloOn > .5) {
+        float t = (1. - smoothstep(uReach * (1. - uSoft), uReach + 1e-4, texture(uDist, uv).r)) * uHaloAmt;
+        t *= mix(1., step(.5, fract(sin(dot(floor(uv * 64.), vec2(127.1, 311.7))) * 43758.5453)), uSpeck);
+        d = mix(d, max(d.r, max(d.g, d.b)) * uHaloInk, t);
+      }
+      return d;
+    }
+`;
+const BLEED_FN = `uniform sampler2D uDist; uniform float uTime;
+    float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+      return mix(mix(h21(i), h21(i + vec2(1., 0.)), f.x), mix(h21(i + vec2(0., 1.)), h21(i + 1.), f.x), f.y); }
+    float leak(vec2 uv){
+      float band = (1. - solid(uv)) * smoothstep(.035, 0., texture(uDist, uv).r);
+      return band * smoothstep(.5, .85, vnoise(uv * 10. + vec2(uTime * .25, -uTime * .2)));
+    }
+`;
+const SRC = {
+  advect: `uniform sampler2D uVel, uSrc; uniform float uDt, uDecay;
+    void main(){
+      if (solid(vUv) > .5) { o = vec4(0.); return; }
+      vec2 c = vUv - uDt * texture(uVel, vUv).xy * uTexel;
+      if (solid(c) > .5) c = vUv;
+      o = texture(uSrc, c) * uDecay;
+    }`,
+  splat: `uniform sampler2D uSrc; uniform vec2 uPoint; uniform vec4 uColor; uniform float uRadius;
+    void main(){
+      vec2 p = vUv - uPoint;
+      o = texture(uSrc, vUv) + exp(-dot(p,p)/uRadius) * uColor;
+    }`,
+  curl: `uniform sampler2D uVel;
+    void main(){
+      float L = texture(uVel, vUv - vec2(uTexel.x,0.)).y, R = texture(uVel, vUv + vec2(uTexel.x,0.)).y;
+      float B = texture(uVel, vUv - vec2(0.,uTexel.y)).x, T = texture(uVel, vUv + vec2(0.,uTexel.y)).x;
+      o = vec4(0.5*(R - L - T + B), 0., 0., 1.);
+    }`,
+  vorticity: `uniform sampler2D uVel, uCurlTex; uniform float uCurl, uDt;
+    void main(){
+      float L = texture(uCurlTex, vUv - vec2(uTexel.x,0.)).x, R = texture(uCurlTex, vUv + vec2(uTexel.x,0.)).x;
+      float B = texture(uCurlTex, vUv - vec2(0.,uTexel.y)).x, T = texture(uCurlTex, vUv + vec2(0.,uTexel.y)).x;
+      float C = texture(uCurlTex, vUv).x;
+      vec2 f = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+      f /= length(f) + 1e-4; f *= uCurl * C; f.y *= -1.;
+      vec2 v = texture(uVel, vUv).xy + f * uDt;
+      o = vec4(clamp(v, -3000., 3000.), 0., 1.);
+    }`,
+  divergence: `uniform sampler2D uVel;
+    void main(){
+      vec2 l = vUv - vec2(uTexel.x,0.), r = vUv + vec2(uTexel.x,0.), b = vUv - vec2(0.,uTexel.y), t = vUv + vec2(0.,uTexel.y);
+      vec2 C = texture(uVel, vUv).xy;
+      float L = solid(l) > .5 ? -C.x : texture(uVel, l).x;
+      float R = solid(r) > .5 ? -C.x : texture(uVel, r).x;
+      float B = solid(b) > .5 ? -C.y : texture(uVel, b).y;
+      float T = solid(t) > .5 ? -C.y : texture(uVel, t).y;
+      o = vec4(0.5*(R - L + T - B), 0., 0., 1.);
+    }`,
+  pressure: `uniform sampler2D uP, uDiv;
+    void main(){
+      vec2 l = vUv - vec2(uTexel.x,0.), r = vUv + vec2(uTexel.x,0.), b = vUv - vec2(0.,uTexel.y), t = vUv + vec2(0.,uTexel.y);
+      float C = texture(uP, vUv).x;
+      float L = solid(l) > .5 ? C : texture(uP, l).x;
+      float R = solid(r) > .5 ? C : texture(uP, r).x;
+      float B = solid(b) > .5 ? C : texture(uP, b).x;
+      float T = solid(t) > .5 ? C : texture(uP, t).x;
+      o = vec4((L + R + B + T - texture(uDiv, vUv).x) * 0.25, 0., 0., 1.);
+    }`,
+  // letters leak ink from their edges, in drifting patches, and push it gently outward
+  bleedDye: `uniform sampler2D uSrc; uniform vec4 uColor; uniform float uDt;
+    ${BLEED_FN}
+    void main(){ o = texture(uSrc, vUv) + uColor * leak(vUv) * uDt; }`,
+  bleedVel: `uniform sampler2D uSrc; uniform float uDt, uPush;
+    ${BLEED_FN}
+    void main(){
+      float e = 1. / 256.;
+      vec2 g = vec2(texture(uDist, vUv + vec2(e, 0.)).r - texture(uDist, vUv - vec2(e, 0.)).r, texture(uDist, vUv + vec2(0., e)).r - texture(uDist, vUv - vec2(0., e)).r);
+      o = vec4(texture(uSrc, vUv).xy + normalize(g + 1e-6) * leak(vUv) * uPush * uDt, 0., 1.);
+    }`,
+  // currents: gravity pulls on ink (heavier where there is more of it), whirlpool spins, turbulence stirs
+  forces: `uniform sampler2D uVel, uDye, uDye2; uniform vec2 uGrav; uniform float uSpin, uTurb, uTime, uDt;
+    float psi(vec2 p){ return sin(p.x * 9. + uTime * .7) * cos(p.y * 8. - uTime * .5) + .5 * sin(p.x * 17. - uTime) * sin(p.y * 15. + uTime * .8); }
+    void main(){
+      if (solid(vUv) > .5) { o = vec4(0.); return; }
+      vec4 a = max(texture(uDye, vUv), 0.); float m = min(a.x + a.y + a.z + a.w + max(texture(uDye2, vUv).r, 0.), 3.);
+      vec2 p = vUv - .5; float e = .01;
+      vec2 curl = vec2(psi(p + vec2(0., e)) - psi(p - vec2(0., e)), psi(p - vec2(e, 0.)) - psi(p + vec2(e, 0.))) / (2. * e);
+      o = vec4(texture(uVel, vUv).xy + (uGrav * m + vec2(-p.y, p.x) * uSpin + curl * uTurb) * uDt, 0., 1.);
+    }`,
+  // stain: ink within reach of a letter is converted to another tray ink. The change is in the ink itself,
+  // so it travels with the ink instead of sitting round the letter as a fixed gradient.
+  stain: `uniform sampler2D uSrc, uSrc2, uDist; uniform vec4 uSlot; uniform float uSlot5, uSecond, uReach, uSoft, uRate, uSpeck;
+    void main(){
+      vec4 a = texture(uSrc, vUv); float b = texture(uSrc2, vUv).r, tot = a.x + a.y + a.z + a.w + b;
+      float t = 1. - smoothstep(uReach * (1. - uSoft), uReach + 1e-4, texture(uDist, vUv).r);
+      t *= mix(1., step(.5, fract(sin(dot(floor(vUv * 64.), vec2(127.1, 311.7))) * 43758.5453)), uSpeck);
+      t = clamp(t * uRate, 0., 1.);
+      o = uSecond < .5 ? mix(a, tot * uSlot, t) : vec4(mix(b, tot * uSlot5, t), 0., 0., 1.);   // first pass writes inks 1-4, second pass ink 5
+    }`,
+  scale: `uniform sampler2D uSrc; uniform float uK;
+    void main(){ o = texture(uSrc, vUv) * uK; }`,
+  gradient: `uniform sampler2D uP, uVel; uniform float uK;
+    void main(){
+      if (solid(vUv) > .5) { o = vec4(0.); return; }
+      vec2 l = vUv - vec2(uTexel.x,0.), r = vUv + vec2(uTexel.x,0.), b = vUv - vec2(0.,uTexel.y), t = vUv + vec2(0.,uTexel.y);
+      float sl = solid(l), sr = solid(r), sb = solid(b), st = solid(t);
+      float C = texture(uP, vUv).x;
+      float L = sl > .5 ? C : texture(uP, l).x;
+      float R = sr > .5 ? C : texture(uP, r).x;
+      float B = sb > .5 ? C : texture(uP, b).x;
+      float T = st > .5 ? C : texture(uP, t).x;
+      vec2 v = texture(uVel, vUv).xy - uK * vec2(R - L, T - B);
+      if (sl > .5) v.x = max(v.x, 0.);
+      if (sr > .5) v.x = min(v.x, 0.);
+      if (sb > .5) v.y = max(v.y, 0.);
+      if (st > .5) v.y = min(v.y, 0.);
+      o = vec4(v, 0., 1.);
+    }`,
+  // one texel per rounded pixel: the averaged ink in that grid cell (keeps the display shader light)
+  cells: `uniform sampler2D uDye; uniform float uCells;
+    ${DYE_FN}
+    void main(){
+      vec2 cu = (floor(gl_FragCoord.xy) + .5) / uCells; float e = .25 / uCells;
+      o = vec4((dyeAt(cu) * 2. + dyeAt(cu + vec2(e, e)) + dyeAt(cu + vec2(-e, e)) + dyeAt(cu + vec2(e, -e)) + dyeAt(cu - vec2(e, e))) / 6.,
+        uLBlob * (1. - smoothstep(0., .6 / uCells, texture(uDist, cu).r)));   // alpha: how much of this cell is letter
+    }`,
+  display: `uniform sampler2D uDye, uCell; uniform vec3 uPaper, uLetter, uFCol;
+    uniform float uMode, uPx, uShape, uCells, uBlob, uGoo, uRound, uSolid, uFilter, uFAmt, uGrain;
+    vec3 inkCol(vec3 d){ return uMode < .5 ? uPaper * exp(-d) : uPaper + (1. - uPaper) * (1. - exp(-d)); }
+    ${DYE_FN}
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    // ink layer + letters at one point of the picture
+    vec3 comp(vec2 uv){
+      vec3 col;
+      if (uShape < .5) col = inkCol(dyeAt(uv));
+      else {
+        // rounded pixels: every grid cell is a blob whose size follows the ink in it
+        vec2 g = uv * uCells, id = floor(g);
+        float n = mix(8., 2., uRound), k = mix(12., 2., uGoo);
+        float field = 0., wsum = 0.; vec3 acc = vec3(0.);
+        for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) {
+          vec2 c = id + vec2(i, j) + .5; ivec2 ci = ivec2(floor(c));
+          if (ci.x < 0 || ci.y < 0 || ci.x >= int(ceil(uCells)) || ci.y >= int(ceil(uCells))) continue;
+          vec4 ct = texelFetch(uCell, ci, 0); vec3 d = ct.rgb;
+          float m = max(d.r, max(d.g, d.b));
+          float r = max(.5 * uBlob * sqrt(1. - exp(-max(m - .1, 0.) * .6)), .62 * sqrt(ct.a));   // ink blob, or letter blob
+          vec2 q = abs(g - c);
+          float dist = pow(pow(q.x, n) + pow(q.y, n), 1. / n) + 1e-4;
+          float w = pow(r / dist, k) * smoothstep(2.5, 1.6, dist);
+          field += w;
+          // sharpened weight: each blob keeps its own colour instead of blurring into its neighbours
+          float wc = pow(min(w, 1e3), 3.); wsum += wc;
+          acc += mix(uSolid > .5 ? inkCol(d / max(m, 1e-4) * 2.6) : inkCol(d), uLetter, smoothstep(.3, .4, ct.a)) * wc;
+        }
+        float fw = clamp(fwidth(field), 1e-3, .5);
+        col = mix(uPaper, acc / max(wsum, 1e-9), smoothstep(1. - fw, 1. + fw, field));
+      }
+      return mix(col, uLetter, texture(uObs, uv).r * (1. - uLBlob * uShape));
+    }
+    float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
+    void main(){
+      vec2 uv = vUv; vec3 col; vec2 p = vUv - .5; float rr = length(p), ang = atan(p.y, p.x);
+      if (uFilter == 1.) {            // halftone
+        float cells = mix(150., 28., uFAmt);
+        mat2 R = mat2(.7071, .7071, -.7071, .7071);
+        vec2 h = R * (vUv - .5) * cells, hc = floor(h) + .5;
+        vec3 c = comp(transpose(R) * (hc / cells) + .5);
+        float rad = sqrt(clamp(length(c - uPaper) / .9, 0., 1.)) * .78, aa = cells * uPx;
+        col = mix(uPaper, c, smoothstep(rad + aa, rad - aa, length(h - hc)));
+      } else {
+        // filters that bend the picture
+        if (uFilter == 5.) uv += uFAmt * .025 * vec2(sin(uv.y * 40. + sin(uv.x * 23.) * 2.), cos(uv.x * 36. + sin(uv.y * 19.) * 2.));
+        else if (uFilter == 6.) { float seg = 6.2832 / floor(mix(3., 12., uFAmt)); float a2 = abs(mod(ang, seg) - seg * .5); uv = .5 + rr * vec2(cos(a2), sin(a2)); }
+        else if (uFilter == 7.) { float a2 = ang + uFAmt * 5. * (.5 - rr); uv = .5 + rr * vec2(cos(a2), sin(a2)); }
+        else if (uFilter == 12.) uv.x = .5 - abs(p.x);
+        col = comp(uv);
+        // filters that change the colour
+        if (uFilter == 2.) col = mix(col, mix(uPaper, uFCol, pow(clamp(length(col - uPaper) / 1.1, 0., 1.), .6)), uFAmt);
+        else if (uFilter == 3.) { float lv = floor(mix(10., 2., uFAmt)); col = floor(col * lv + .5) / lv; }
+        else if (uFilter == 4.) col = mix(col, 1. - col, uFAmt);
+        else if (uFilter == 8.) { vec2 d = vec2(uFAmt * .03, uFAmt * .012); col = vec3(comp(uv + d).r, col.g, comp(uv - d).b); }
+        else if (uFilter == 9.) { float e = .004; col += (lum(col) - lum(comp(uv + vec2(e, e)))) * uFAmt * 2.5; }
+        else if (uFilter == 10.) {
+          float e = .0035;
+          float g = abs(lum(comp(uv + vec2(e, 0.))) - lum(comp(uv - vec2(e, 0.)))) + abs(lum(comp(uv + vec2(0., e))) - lum(comp(uv - vec2(0., e))));
+          col = mix(mix(col, uPaper, uFAmt * .85), uLetter, smoothstep(.03, .18, g));
+        }
+        else if (uFilter == 11.) col *= 1. - uFAmt * .55 * step(.5, fract(vUv.y * 110.));
+      }
+      col += (hash(floor(vUv * 1024.)) - .5) * uGrain * .45;
+      float a = uSquare > .5 ? 1. : 1. - smoothstep(.5 - uPx, .5, rim(vUv));
+      o = vec4(clamp(col, 0., 1.) * a, a);
+    }`,
+};
+
+function compile(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) + '\n' + src);
+  return s;
+}
+const vs = compile(gl.VERTEX_SHADER, VERT);
+const P = {};
+for (const k in SRC) {
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, HEAD + SRC[k]));
+  gl.bindAttribLocation(prog, 0, 'aPos'); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  const u = {};
+  for (let i = 0, n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS); i < n; i++) {
+    const name = gl.getActiveUniform(prog, i).name; u[name] = gl.getUniformLocation(prog, name);
+  }
+  P[k] = { prog, u };
+}
+const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.disable(gl.BLEND);
+
+function fbo(w, h, internal, format) {
+  const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, format, gl.HALF_FLOAT, null);
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  return { tex, fbo: f, w, h };
+}
+const pair = (...a) => { const p = { read: fbo(...a), write: fbo(...a), swap() { [p.read, p.write] = [p.write, p.read]; } }; return p; };
+const vel = pair(SIM, SIM, gl.RG16F, gl.RG);
+const prs = pair(SIM, SIM, gl.R16F, gl.RED);
+const dye = pair(DYE, DYE, gl.RGBA16F, gl.RGBA);
+const dye2 = pair(DYE, DYE, gl.R16F, gl.RED);   // the fifth ink
+const cellT = fbo(128, 128, gl.RGBA16F, gl.RGBA);
+const curlT = fbo(SIM, SIM, gl.R16F, gl.RED), divT = fbo(SIM, SIM, gl.R16F, gl.RED);
+const simTexel = [1 / SIM, 1 / SIM];
+
+const obsTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, obsTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+function run(p, target, u) {
+  gl.useProgram(p.prog);
+  let unit = 0;
+  u.uObs = obsTex; u.uSquare = square ? 1 : 0;
+  for (const k in u) {
+    const loc = p.u[k]; if (!loc) continue; const v = u[k];
+    if (v instanceof WebGLTexture) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, v); gl.uniform1i(loc, unit++); }
+    else if (typeof v === 'number') gl.uniform1f(loc, v);
+    else if (v.length === 2) gl.uniform2fv(loc, v);
+    else if (v.length === 4) gl.uniform4fv(loc, v);
+    else gl.uniform3fv(loc, v);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.fbo : null);
+  gl.viewport(0, 0, target ? target.w : canvas.width, target ? target.h : canvas.height);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* ---------- letters (rigid bodies) ---------- */
+const obsCanvas = document.createElement('canvas'); obsCanvas.width = obsCanvas.height = OBS;
+const octx = obsCanvas.getContext('2d', { willReadFrequently: false });
+const letters = []; let selected = null, obsDirty = true, overlayDirty = true;
+
+function fontOf(l) { const [w, fam] = l.font.split('|'); return `${w} ${l.size * OBS}px ${fam}`; }
+function measure(l) {
+  octx.font = fontOf(l);
+  const m = octx.measureText(l.text);
+  l.w = Math.max(m.width, m.actualBoundingBoxLeft + m.actualBoundingBoxRight) / OBS;
+  l.asc = m.actualBoundingBoxAscent / OBS; l.desc = m.actualBoundingBoxDescent / OBS;
+  l.h = l.asc + l.desc;
+}
+function drawObstacles() {
+  octx.setTransform(1, 0, 0, 1, 0, 0);
+  octx.fillStyle = '#000'; octx.fillRect(0, 0, OBS, OBS);
+  octx.fillStyle = '#fff'; octx.textAlign = 'center'; octx.textBaseline = 'alphabetic';
+  for (const l of letters) {
+    measure(l);
+    if (l.hidden) continue;
+    octx.setTransform(1, 0, 0, 1, 0, 0);
+    octx.translate(l.x * OBS, l.y * OBS); octx.rotate(l.rot * Math.PI / 180);
+    octx.font = fontOf(l);
+    const by = (l.asc - l.desc) / 2 * OBS;
+    if (l.body === 'solid') octx.fillText(l.text, 0, by);
+    else {
+      // hollow: only the outline is a wall, with gaps so ink can get in and out
+      octx.strokeStyle = '#fff'; octx.lineWidth = l.wall * OBS; octx.lineJoin = 'round'; octx.lineCap = 'butt';
+      // Openings sets how often the outline is broken (from a couple of long runs to many short ones);
+      // Opening width sets how much of each run is open, up to almost all of it.
+      const period = l.size * OBS * 1.6 * Math.pow(.06 / 1.6, l.gaps);
+      octx.setLineDash(l.gaps > 0 ? [period * (1 - l.gapw), period * l.gapw] : []);
+      octx.strokeText(l.text, 0, by);
+      octx.setLineDash([]);
+    }
+  }
+  gl.bindTexture(gl.TEXTURE_2D, obsTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, obsCanvas);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  updateDistance();
+  obsDirty = false; overlayDirty = true;
+}
+/* distance from every point to the nearest letter, for colouring ink close to letters */
+const DN = 256, distCanvas = document.createElement('canvas'); distCanvas.width = distCanvas.height = DN;
+const dctx = distCanvas.getContext('2d', { willReadFrequently: true });
+const distData = new Float32Array(DN * DN), distFlip = new Float32Array(DN * DN);
+const distTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, distTex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+function updateDistance() {
+  dctx.drawImage(obsCanvas, 0, 0, DN, DN);
+  const px = dctx.getImageData(0, 0, DN, DN).data, d = distData, D = 1.4142;
+  for (let i = 0; i < DN * DN; i++) d[i] = px[i * 4] > 127 ? 0 : 1e4;
+  for (let y = 0; y < DN; y++) for (let x = 0; x < DN; x++) {
+    const i = y * DN + x; let v = d[i];
+    if (x > 0) v = Math.min(v, d[i - 1] + 1);
+    if (y > 0) { v = Math.min(v, d[i - DN] + 1); if (x > 0) v = Math.min(v, d[i - DN - 1] + D); if (x < DN - 1) v = Math.min(v, d[i - DN + 1] + D); }
+    d[i] = v;
+  }
+  for (let y = DN - 1; y >= 0; y--) for (let x = DN - 1; x >= 0; x--) {
+    const i = y * DN + x; let v = d[i];
+    if (x < DN - 1) v = Math.min(v, d[i + 1] + 1);
+    if (y < DN - 1) { v = Math.min(v, d[i + DN] + 1); if (x < DN - 1) v = Math.min(v, d[i + DN + 1] + D); if (x > 0) v = Math.min(v, d[i + DN - 1] + D); }
+    d[i] = v;
+  }
+  for (let y = 0; y < DN; y++) for (let x = 0; x < DN; x++) distFlip[(DN - 1 - y) * DN + x] = d[y * DN + x] / DN;
+  gl.bindTexture(gl.TEXTURE_2D, distTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, DN, DN, 0, gl.RED, gl.FLOAT, distFlip);
+}
+function haloInk() {
+  const c = hex(inks[haloSlot]);
+  const a = $('blend').value === 'ink' ? c.map(v => -Math.log(Math.max(v, .04))) : c;
+  const m = Math.max(...a, 1e-4); return a.map(v => v / m);
+}
+function hit(x, y) {
+  for (let i = letters.length - 1; i >= 0; i--) {
+    const l = letters[i]; if (l.hidden) continue;
+    const a = -l.rot * Math.PI / 180, dx = x - l.x, dy = y - l.y;
+    const lx = dx * Math.cos(a) - dy * Math.sin(a), ly = dx * Math.sin(a) + dy * Math.cos(a);
+    if (Math.abs(lx) <= l.w / 2 + .03 && Math.abs(ly) <= l.h / 2 + .03) return l;
+  }
+  return null;
+}
+let flashUntil = 0;
+function select(l, flash) {
+  selected = l; overlayDirty = true;
+  if (flash) flashUntil = performance.now() + 900;
+  $('centre').disabled = !l || l.locked;
+  $('lsize').disabled = $('lrot').disabled = !!(l && l.locked);
+  if (l) { $('lsize').value = l.size; $('lrot').value = l.rot; $('font').value = l.font; $('body').value = l.body; $('wall').value = l.wall; $('gaps').value = l.gaps; $('gapw').value = l.gapw; }
+  renderList(); window.__syncUI?.();
+}
+const ICON = {
+  lock: '<svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
+  unlock: '<svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.7-1.2"/></svg>',
+  eye: '<svg viewBox="0 0 16 16"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>',
+  eyeOff: '<svg viewBox="0 0 16 16"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8z"/><path d="M2.5 2.5l11 11"/></svg>',
+  trash: '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>',
+};
+function renderList() {
+  const host = $('letterList'); host.textContent = '';
+  letters.forEach(l => {
+    const [w, fam] = l.font.split('|');
+    const row = document.createElement('div'); row.className = 'lrow' + (l === selected ? ' sel' : '');
+    const glyph = document.createElement('span'); glyph.className = 'glyph'; glyph.textContent = l.text.slice(0, 2); glyph.style.font = `${w} 15px ${fam}`;
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = l.text;
+    const sm = document.createElement('small'); sm.textContent = fam.split(',')[0].replace(/"/g, '') + (l.locked ? ' · locked' : '') + (l.hidden ? ' · hidden' : ''); nm.append(sm);
+    const mk = (icon, title, on, fn, disabled) => { const b = document.createElement('button'); b.type = 'button'; b.title = title; b.innerHTML = icon; b.disabled = !!disabled;
+      if (on) b.classList.add('on'); b.onclick = e => { e.stopPropagation(); fn(); }; return b; };
+    row.append(glyph, nm,
+      mk(l.locked ? ICON.lock : ICON.unlock, l.locked ? 'Unlock' : 'Lock in place', l.locked, () => { l.locked = !l.locked; select(l.locked ? null : l); }),
+      mk(l.hidden ? ICON.eyeOff : ICON.eye, l.hidden ? 'Show' : 'Hide', l.hidden, () => { l.hidden = !l.hidden; obsDirty = true; select(l); }),
+      mk(ICON.trash, 'Delete', false, () => { letters.splice(letters.indexOf(l), 1); obsDirty = true; select(selected === l ? null : selected); }, l.locked));
+    row.onclick = () => select(l, true);
+    host.append(row);
+  });
+}
+function addLetter(text, x = .5, y = .5) {
+  const l = { text, font: $('font').value, size: +$('lsize').value, rot: +$('lrot').value, x, y, locked: false, hidden: false,
+    body: $('body').value, wall: +$('wall').value, gaps: +$('gaps').value, gapw: +$('gapw').value };
+  letters.push(l); obsDirty = true; select(l); return l;
+}
+function drawOverlay() {
+  const r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const W = Math.round(r.width * dpr);
+  if (overlay.width !== W) overlay.width = overlay.height = W;
+  const c = overlay.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, W);
+  const arrange = $('mode').value === 'arrange', guides = $('guides').checked || arrange;
+  const flash = Math.max(0, (flashUntil - performance.now()) / 900);
+  for (const l of letters) {
+    if (l.hidden && l !== selected) continue;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.translate(l.x * W, l.y * W); c.rotate(l.rot * Math.PI / 180);
+    const w = (l.w + .03) * W, h = (l.h + .03) * W, sel = l === selected;
+    if (guides) {
+      // guide outline of the true letter shape: dark under white, so it shows on any colour. Never exported.
+      const [fw, fam] = l.font.split('|');
+      c.font = `${fw} ${l.size * W}px ${fam}`; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round'; c.setLineDash([]);
+      const by = (l.asc - l.desc) / 2 * W;
+      c.globalAlpha = l.hidden ? .35 : 1;
+      c.lineWidth = 3 * dpr; c.strokeStyle = 'rgba(0,0,0,.45)'; c.strokeText(l.text, 0, by);
+      c.lineWidth = 1 * dpr; c.strokeStyle = 'rgba(255,255,255,.95)'; c.strokeText(l.text, 0, by);
+      c.globalAlpha = 1;
+    }
+    if (arrange || (sel && flash > 0)) {
+      c.lineWidth = 1.5 * dpr; c.setLineDash([6 * dpr, 5 * dpr]); c.globalAlpha = sel ? 1 : .5;
+      c.strokeStyle = 'rgba(0,0,0,.55)'; c.strokeRect(-w / 2, -h / 2, w, h);
+      c.lineDashOffset = 5.5 * dpr; c.strokeStyle = sel ? '#ff5a1f' : 'rgba(255,255,255,.9)'; c.strokeRect(-w / 2, -h / 2, w, h);
+      c.lineDashOffset = 0; c.setLineDash([]); c.globalAlpha = 1;
+    }
+    if (sel && flash > 0) {
+      const g = (1 - flash) * 26 * dpr;
+      c.lineWidth = 4 * dpr; c.strokeStyle = `rgba(255,90,31,${flash})`; c.strokeRect(-w / 2 - g, -h / 2 - g, w + 2 * g, h + 2 * g);
+    }
+    if (l.locked && arrange) {
+      c.font = `600 ${11 * dpr}px Geist, sans-serif`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+      const t = 'LOCKED', tw = c.measureText(t).width + 12 * dpr, th = 18 * dpr;
+      c.fillStyle = 'rgba(20,20,24,.85)'; c.fillRect(-w / 2, -h / 2 - th, tw, th);
+      c.fillStyle = '#fff'; c.fillText(t, -w / 2 + 6 * dpr, -h / 2 - 3 * dpr);
+    }
+  }
+  overlayDirty = flash > 0;
+}
+/* ---------- ink ---------- */
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+// The drawing stores how much of each of the four palette inks is where, not colours.
+// Changing the palette therefore recolours everything already painted.
+const hsvHex = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(5) + f(3) + f(1); };
+const hexHsv = h => { const [r, g, b] = hex(h), mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+  let hu = 0; if (d) hu = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [hu * 60, mx ? d / mx : 0, mx]; };
+let inks = ['#14151a', '#1d2f9e', '#c8102e', '#00897b', '#e3a008'], inkCount = 4, slot = 0, haloSlot = 2, letterMatch = false;
+function inkVec(i, k) { const v = [0, 0, 0, 0, 0]; v[i] = +$('amount').value * k; return v; }
+function inkUniform() {   // inks beyond the chosen count borrow the colour of a visible ink, so the drawing shows exactly that many colours
+  const ink = $('blend').value === 'ink';
+  return [0, 1, 2, 3, 4].flatMap(i => hex(inks[i < inkCount ? i : i % inkCount]).map(v => ink ? -Math.log(Math.max(v, .04)) : v * 1.6));
+}
+const splats = [], jets = [];
+function splat(x, y, dx, dy, color, r, vr) { splats.push({ x, y, dx, dy, color, r, vr: vr || r }); }
+function flushSplats() {
+  for (const s of splats) {
+    if (s.dx || s.dy) { run(P.splat, vel.write, { uSrc: vel.read.tex, uPoint: [s.x, s.y], uColor: [s.dx, s.dy, 0, 0], uRadius: s.vr }); vel.swap(); }
+    if (s.color && s.color[4]) { run(P.splat, dye2.write, { uSrc: dye2.read.tex, uPoint: [s.x, s.y], uColor: [s.color[4], 0, 0, 0], uRadius: s.r }); dye2.swap(); }
+    else if (s.color) { run(P.splat, dye.write, { uSrc: dye.read.tex, uPoint: [s.x, s.y], uColor: s.color.slice(0, 4), uRadius: s.r }); dye.swap(); }
+  }
+  splats.length = 0;
+}
+function fireJet(i) {
+  const a = Math.random() * Math.PI * 2, j = (Math.random() - .5) * 1.1;
+  jets.push({ x: .5 + .41 * Math.cos(a), y: .5 + .41 * Math.sin(a), dx: -Math.cos(a + j), dy: -Math.sin(a + j),
+    color: i ?? Math.floor(Math.random() * inkCount), life: .28 });
+}
+
+/* ---------- simulation ---------- */
+let frozen = false, dripTimer = 0, dripSlot = -1, square = false;
+function step(dt) {
+  if ($('drips').checked && (dripTimer -= dt) <= 0) {   // auto drips always shoot the ink selected under Paint with
+    for (let i = +$('dripCount').value; i > 0; i--) fireJet($('dripCycle').checked ? (dripSlot = (dripSlot + 1) % inkCount) : slot);   // each puff the next ink, or always the selected one
+    dripTimer = (2 - 1.9 * +$('dripRate').value) * (.7 + Math.random() * .6);
+  }
+  const b = +$('brush').value;
+  for (let i = jets.length - 1; i >= 0; i--) {
+    const j = jets[i], k = 260 * +$('force').value;
+    splat(j.x, j.y, j.dx * k, j.dy * k, inkVec(j.color, .5), b * b * 1.4);
+    if ((j.life -= dt) <= 0) jets.splice(i, 1);
+  }
+  flushSplats();
+  const T = { uTexel: simTexel };
+  const bleed = +$('bleed').value;
+  if (bleed > 0 && letters.some(l => !l.hidden)) {
+    const B = { ...T, uDist: distTex, uTime: performance.now() / 1000, uDt: dt };
+    const bc = inkVec(slot, 4 * bleed);
+    if (bc[4]) { run(P.bleedDye, dye2.write, { ...B, uSrc: dye2.read.tex, uColor: [bc[4], 0, 0, 0] }); dye2.swap(); }
+    else { run(P.bleedDye, dye.write, { ...B, uSrc: dye.read.tex, uColor: bc.slice(0, 4) }); dye.swap(); }
+    run(P.bleedVel, vel.write, { ...B, uSrc: vel.read.tex, uPush: 900 * bleed }); vel.swap();
+  }
+  const grav = +$('grav').value, ga = +$('gravDir').value * Math.PI / 180, spin = +$('spin').value, turb = +$('turb').value;
+  if (grav || spin || turb) {
+    run(P.forces, vel.write, { uVel: vel.read.tex, uDye: dye.read.tex, uDye2: dye2.read.tex, uGrav: [-Math.sin(ga) * grav * 450, -Math.cos(ga) * grav * 450],
+      uSpin: spin * 500, uTurb: turb * 14, uTime: performance.now() / 1000, uDt: dt }); vel.swap();
+  }
+  const swirl = +$('swirl').value;
+  if (swirl > 0) {
+    run(P.curl, curlT, { ...T, uVel: vel.read.tex });
+    run(P.vorticity, vel.write, { ...T, uVel: vel.read.tex, uCurlTex: curlT.tex, uCurl: swirl, uDt: dt }); vel.swap();
+  }
+  run(P.divergence, divT, { ...T, uVel: vel.read.tex });
+  run(P.scale, prs.write, { uSrc: prs.read.tex, uK: .8 }); prs.swap();
+  for (let i = 0; i < 40; i++) { run(P.pressure, prs.write, { ...T, uP: prs.read.tex, uDiv: divT.tex }); prs.swap(); }
+  run(P.gradient, vel.write, { ...T, uP: prs.read.tex, uVel: vel.read.tex, uK: .5 }); vel.swap();
+  const drag = (1 - +$('momentum').value) * 3;
+  run(P.advect, vel.write, { ...T, uVel: vel.read.tex, uSrc: vel.read.tex, uDt: dt, uDecay: 1 / (1 + drag * dt) }); vel.swap();
+  const fadeK = 1 / (1 + +$('fade').value * dt);
+  run(P.advect, dye.write, { ...T, uVel: vel.read.tex, uSrc: dye.read.tex, uDt: dt, uDecay: fadeK }); dye.swap();
+  run(P.advect, dye2.write, { ...T, uVel: vel.read.tex, uSrc: dye2.read.tex, uDt: dt, uDecay: fadeK }); dye2.swap();
+}
+function render() {
+  const halo = { uLBlob: $('lstyle').value === 'blob' ? 1 : 0, 'uInk[0]': inkUniform(), uDye2: dye2.read.tex, uDist: distTex, uHaloOn: 0, uReach: 0, uSoft: 0, uHaloAmt: 0, uSpeck: 0, uHaloInk: [0, 0, 0] };
+  const pixels = $('shape').value !== 'smooth', cells = 1 / +$('pixel').value;
+  if (pixels) run(P.cells, cellT, { uDye: dye.read.tex, uCells: cells, ...halo });
+  run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: hex($('letterColor').value),
+    uMode: $('blend').value === 'ink' ? 0 : 1, uPx: 1.5 / canvas.width,
+    uShape: $('shape').value === 'smooth' ? 0 : 1, uCells: 1 / +$('pixel').value, uBlob: +$('blob').value,
+    uGoo: +$('goo').value, uRound: +$('round').value, uSolid: 1,
+    uFilter: +$('filter').value, uFAmt: +$('famt').value, uFCol: hex($('fcol').value), uGrain: +$('grain').value });
+}
+let last = performance.now();
+let rec = null;   // the recording in progress, if any
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 60); last = now;
+  if (obsDirty) drawObstacles();
+  if (frozen) { splats.forEach(sp => { sp.dx = sp.dy = 0; }); flushSplats(); }   // frozen: ink holds still, but new ink and edits still land
+  else step(dt);
+  render();
+  if (rec) rec.draw();   // copy this frame into the video being recorded
+  if (overlayDirty) drawOverlay();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- pointer ---------- */
+let ptr = null;
+const pos = e => { const r = stage.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+stage.addEventListener('pointerdown', e => {
+  const [x, y] = pos(e); stage.setPointerCapture(e.pointerId);
+  if ($('mode').value === 'arrange') {
+    const l = hit(x, y); select(l);
+    if (l && !l.locked) ptr = { mode: 'letter', l, x, y };
+    return;
+  }
+  if (!square && Math.hypot(x - .5, y - .5) > .5) return;
+  ptr = { mode: 'ink', x, y };
+  const b = +$('brush').value;
+  splat(x, 1 - y, 0, 0, inkVec(slot, 1.2), b * b);
+});
+stage.addEventListener('pointermove', e => {
+  if (!ptr) { const h = $('mode').value !== 'arrange' ? null : hit(...pos(e)); stage.style.cursor = $('mode').value === 'arrange' ? (h ? (h.locked ? 'pointer' : 'grab') : 'default') : 'crosshair'; return; }
+  const [x, y] = pos(e), dx = x - ptr.x, dy = y - ptr.y, f = FORCE * +$('force').value;
+  if (ptr.mode === 'letter') {
+    const l = ptr.l; l.x = Math.min(.95, Math.max(.05, l.x + dx)); l.y = Math.min(.95, Math.max(.05, l.y + dy));
+    obsDirty = true;
+    const r = Math.max(l.w, l.h) * .5;
+    splat(l.x, 1 - l.y, dx * f * .6, -dy * f * .6, null, r * r, r * r);
+  } else {
+    const b = +$('brush').value, d = Math.hypot(dx, dy), n = Math.min(10, Math.max(1, Math.ceil(d / (b * .6))));
+    const col = inkVec(slot, .4);
+    for (let i = 1; i <= n; i++) splat(ptr.x + dx * i / n, 1 - (ptr.y + dy * i / n), dx * f, -dy * f, col, b * b, b * b * 1.5);
+  }
+  ptr.x = x; ptr.y = y;
+});
+const end = () => { ptr = null; };
+stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+
+/* ---------- UI ---------- */
+/* ---------- palette ---------- */
+const PAL = (name, paper, letter, ...inks) => ({ name, paper, letter, inks });
+const CLASSICS = {
+  light: [
+    PAL('Studio', '#f4efe6', '#14151a', '#14151a', '#1d2f9e', '#c8102e', '#00897b'),
+    PAL('Riso', '#f6f0e4', '#1a1a1a', '#ff48b0', '#0078bf', '#ffe800', '#00a95c'),
+    PAL('Bauhaus', '#efe6d5', '#111111', '#d62828', '#f2b705', '#1d4e9e', '#111111'),
+    PAL('Botanic', '#eef1e6', '#1f2d24', '#2d6a4f', '#95d5b2', '#bc6c25', '#283618'),
+    PAL('Sunset', '#fff1e6', '#3d1635', '#ff7b00', '#ff006e', '#8338ec', '#3a0ca3'),
+    PAL('Mono', '#f5f5f4', '#0c0c0c', '#0c0c0c', '#44403c', '#78716c', '#a8a29e'),
+    PAL('Citrus', '#fffbe8', '#1f2a12', '#f94144', '#f8961e', '#90be6d', '#277da1'),
+    PAL('Blush', '#fdeef0', '#3a1220', '#e63973', '#ff9eb5', '#7b2cbf', '#240046'),
+  ],
+  dark: [
+    PAL('Neon', '#0b0b12', '#f4f4f5', '#00f5d4', '#f15bb5', '#fee440', '#9b5de5'),
+    PAL('Deep sea', '#06131f', '#e0fbfc', '#3a86ff', '#00b4d8', '#90e0ef', '#48cae4'),
+    PAL('Ember', '#140a08', '#ffe8d6', '#ff4d00', '#ff9500', '#ffd000', '#ff2e63'),
+    PAL('Aurora', '#07120f', '#eafff5', '#00ff9d', '#00c2ff', '#b388ff', '#f6ff8f'),
+    PAL('Arcade', '#0d0221', '#ffffff', '#ff00a0', '#00e5ff', '#ffe600', '#7cff00'),
+    PAL('Moonlight', '#0c0f1a', '#f1f3ff', '#ffffff', '#b8c4ff', '#7d8cff', '#e0c3fc'),
+    PAL('Candy', '#190b1c', '#fff0fb', '#ff8fd8', '#ffc6a5', '#a0f0ff', '#d0a2ff'),
+    PAL('Jungle', '#08110a', '#f0ffe6', '#b6ff3b', '#19d27a', '#ffd23f', '#ff7a3d'),
+  ],
+};
+const classics = () => CLASSICS[isDark($('paperCustom').value) ? 'dark' : 'light'];
+// light paper -> Light mode (ink darkens the paper); dark paper -> Dark mode (ink glows). Follows the paper, not switchable.
+const SUN = '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>';
+const MOON = '<svg viewBox="0 0 16 16"><path d="M13 9.6A5.5 5.5 0 0 1 6.4 3 5.5 5.5 0 1 0 13 9.6z"/></svg>';
+// One light/dark switch for the whole app: it sets the paper, the way ink behaves on it (darkens on light,
+// glows on dark) and the look of the interface. Picking a dark or light paper flips it too.
+const lastPaper = { light: '#f4efe6', dark: '#0b0b12' };
+const isDark = h => { const c = hex(h); return .299 * c[0] + .587 * c[1] + .114 * c[2] < .4; };
+function syncPaper() {
+  const paper = $('paperCustom').value, dark = isDark(paper);
+  $('blend').value = dark ? 'light' : 'ink'; lastPaper[dark ? 'dark' : 'light'] = paper;
+  document.documentElement.dataset.bsTheme = dark ? 'dark' : 'light';
+  $('themeToggle').innerHTML = dark ? MOON : SUN; $('themeToggle').title = dark ? 'Dark mode: ink glows. Switch to light.' : 'Light mode: ink darkens. Switch to dark.';
+  if (letterMatch && $('letterColor').value !== paper) $('letterColor').value = paper;
+  const chip = $('paperChip'); if (chip) { chip.style.background = paper; chip.title = 'Paper colour'; }
+}
+$('themeToggle').onclick = () => {
+  const toDark = !isDark($('paperCustom').value);
+  $('paperCustom').value = lastPaper[toDark ? 'dark' : 'light'];
+  // keep every ink readable on the new paper: lift near-black inks on dark, deepen near-white inks on light
+  inks = inks.map(h => { const [hu, sa, va] = hexHsv(h); return toDark ? (va < .45 ? hsvHex(hu, Math.min(sa, .5), .92) : h) : (va > .85 && sa < .3 ? hsvHex(hu, Math.max(sa, .4), .3) : h); });
+  if (!letterMatch) $('letterColor').value = toDark ? '#f4f4f5' : '#14151a';
+  renderInks(); markPalette(null);
+  if (showingClassics) renderPalettes(classics(), -1);   // the built-in palettes follow the mode
+};
+const shuffleInks = () => { const vis = inks.slice(0, inkCount); vis.push(vis.shift()); inks = [...vis, ...inks.slice(inkCount)]; renderInks(); markPalette(null); };   // same tray, inks swapped round
+// palettes come with four inks; a fifth is derived from the second one so it belongs to the same family
+const withFifth = a => { if (a.length >= 5) return a.slice(0, 5); const [h, sa, va] = hexHsv(a[1]); return [...a, hsvHex(h + 150, Math.max(sa, .45), Math.min(1, Math.max(va, .55)))]; };
+function renderInks() {
+  const host = $('inkSwatches'); host.textContent = '';
+  const pc = document.createElement('button'); pc.type = 'button'; pc.id = 'paperChip'; pc.className = 'sw paper';
+  pc.onclick = () => openPicker($('paperCustom'), pc); host.append(pc); syncPaper();
+  slot = Math.min(slot, inkCount - 1); haloSlot = Math.min(haloSlot, inkCount - 1);
+  inks.slice(0, inkCount).forEach((c, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw' + (i === slot ? ' sel' : ''); b.style.background = c; b.textContent = i + 1;
+    b.title = i === slot ? `Ink ${i + 1}: click to change its colour` : `Paint with ink ${i + 1}`;
+    b.onclick = () => { if (slot === i) openPicker($('inkCustom'), b); else { closePicker(); slot = i; renderInks(); } }; host.append(b);
+  });
+  const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'shuf'; sh.title = 'Shuffle the inks: the drawing keeps its shapes and trades colours'; sh.hidden = inkCount < 2;
+  sh.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 4.5h2.5c3 0 4 7 7 7H14M2 11.5h2.5c1.2 0 2-.9 2.7-2M9.2 6.3c.7-1 1.4-1.8 2.3-1.8H14M12 2.5l2 2-2 2M12 9.5l2 2-2 2"/></svg>';
+  sh.onclick = shuffleInks; host.append(sh);
+  if ($('inkCustom').value !== inks[slot]) $('inkCustom').value = inks[slot];
+}
+$('inkCustom').addEventListener('input', () => { inks[slot] = $('inkCustom').value; renderInks(); markPalette(null); });
+let palList = [], palPage = 0, palSel = null;
+function applyPalette(p) {
+  inks = withFifth(p.inks); $('paperCustom').value = p.paper; if (!letterMatch) $('letterColor').value = p.letter;
+  haloSlot = Math.floor(Math.random() * inkCount);   // stain: a random ink from the new tray
+  renderInks(); markPalette(p);
+}
+function markPalette(p) { palSel = p || null; drawPalettes(); }
+function drawPalettes() {   // four cards at a time
+  $('palettes').textContent = '';
+  palList.slice(palPage * 4, palPage * 4 + 4).forEach(p => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pal' + (p === palSel ? ' sel' : ''); b.title = p.name; b.style.background = p.paper;
+    b.innerHTML = withFifth(p.inks).slice(0, inkCount).map(c => `<i style="background:${c}"></i>`).join('') + `<span style="color:${p.letter}">${p.name}</span>`;
+    b.onclick = () => applyPalette(p, p); $('palettes').append(b);
+  });
+  $('palPrev').disabled = palPage === 0; $('palNext').disabled = (palPage + 1) * 4 >= palList.length;
+}
+function renderPalettes(list, selIndex) { palList = list; palPage = 0; palSel = list[selIndex] || null; drawPalettes(); }
+$('palPrev').onclick = () => { palPage--; drawPalettes(); };
+$('palNext').onclick = () => { palPage++; drawPalettes(); };
+let showingClassics = true;
+renderPalettes(classics(), 0);
+$('inkCount').addEventListener('change', () => { inkCount = +$('inkCount').value; renderInks(); drawPalettes(); });
+$('paperCustom').addEventListener('input', syncPaper);
+addEventListener('keydown', e => {   // 1-4 pick the ink to paint with
+  const a = document.activeElement;
+  if ((/INPUT|SELECT|TEXTAREA/.test(a.tagName) && a.type !== 'range') || e.metaKey || e.ctrlKey) return;
+  if (e.key >= '1' && +e.key <= inkCount) { slot = +e.key - 1; renderInks(); }
+});
+$('classics').onclick = () => { showingClassics = true; renderPalettes(classics(), -1); };
+// Randomize: eight new palettes that suit the current paper. The paper stays; its hue (if it has one) anchors
+// the harmony, and its lightness decides between deep inks on light paper and glowing inks on dark paper.
+// Randomize: eight genuinely different palettes. Each one gets its own base hue (spread round the colour wheel),
+// its own harmony and its own mood. The paper stays, and decides between deep inks (light paper) and glowing inks (dark paper).
+const SCHEMES = [['Analog', [0, 35, -35, 70]], ['Triad', [0, 120, 240, 60]], ['Split', [0, 150, 210, 30]], ['Mono', [0, 0, 0, 0]], ['Square', [0, 90, 180, 270]], ['Clash', [0, 180, 90, 300]], ['Duo', [0, 180, 15, 195]], ['Wide', [0, 60, 200, 300]]];
+const MOODS = { light: [[.75, 1, .55, .95], [.45, .7, .3, .7], [.85, 1, .35, .8], [.3, .55, .5, .9]], dark: [[.75, 1, .95, 1], [.3, .5, .95, 1], [.55, .9, .8, 1], [.9, 1, .9, 1]] };
+function genPalette(paper, k, spin) {
+  const dark = isDark(paper), rnd = (a, b) => a + Math.random() * (b - a);
+  const h = spin + k * 47 + rnd(-20, 20);   // 47° steps walk the whole wheel across eight palettes
+  const order = SCHEMES.map((_, i) => i).sort(() => Math.random() - .5);
+  const [name, offs] = SCHEMES[order[k % 8]], [s0, s1, v0, v1] = MOODS[dark ? 'dark' : 'light'][Math.floor(Math.random() * 4)];
+  const inks = [...offs, offs[1] + 200].map((o, i) => name === 'Mono' ? hsvHex(h + rnd(-8, 8), dark ? .15 + i * .2 : .3 + i * .16, dark ? 1 - i * .07 : .9 - i * .18)
+    : hsvHex(h + o + rnd(-10, 10), rnd(s0, s1), rnd(v0, v1)));
+  if (!dark && name !== 'Mono') inks[3] = hsvHex(h + offs[3], rnd(.5, .9), rnd(.18, .4));   // one deep ink to anchor light palettes
+  return { name, paper, inks, letter: dark ? hsvHex(h, .08, .96) : hsvHex(h, .5, .12) };
+}
+$('surprise').onclick = () => { const paper = $('paperCustom').value, spin = Math.random() * 360; showingClassics = false; renderPalettes(SCHEMES.map((_, k) => genPalette(paper, k, spin)), -1); };
+
+/* ---------- presets: the same row (chips + randomize + reset) at the top of every box ---------- */
+const DICE = '<svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><circle cx="5.7" cy="5.7" r=".6"/><circle cx="10.3" cy="10.3" r=".6"/><circle cx="8" cy="8" r=".6"/><circle cx="10.3" cy="5.7" r=".6"/><circle cx="5.7" cy="10.3" r=".6"/></svg>';
+const RESET = '<svg viewBox="0 0 16 16"><path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v2.6h2.6"/></svg>';
+const rnd = (a = 0, b = 1) => a + Math.random() * (b - a), pick = arr => arr[Math.floor(Math.random() * arr.length)];
+function setVals(v) {   // write a set of control values, then refresh anything that depends on them
+  Object.entries(v).forEach(([id, val]) => { const el = $(id); if (el.type === 'checkbox') el.checked = val; else el.value = val; });
+  syncWhen();
+}
+// name: which [data-presets] slot; defs: {chip name: values}; apply(values); random(): values; defaults: values; watch: control ids that clear the chip when touched
+const chipSyncs = [];
+function presetBox(name, defs, apply, random, defaults, watch) {
+  const host = document.querySelector(`[data-presets=${name}]`), head = document.createElement('div'), chips = document.createElement('div');
+  head.className = 'pal-head'; head.innerHTML = `<span>Presets</span><span class="tools"><button type="button" class="txt" title="Shuffle the settings in this box">${DICE}Shuffle</button><button type="button" class="txt" title="Put this box back to how it started">${RESET}Reset</button></span>`;
+  chips.className = 'chips';
+  // a chip is lit whenever the controls actually hold its values, however they got there
+  const holds = v => Object.entries({ ...defaults, ...v }).every(([id, val]) => { const el = $(id);
+    return !watch.includes(id) || (typeof val === 'number' ? Math.abs(+el.value - val) <= (+el.step || 0) / 2 + 1e-6 : String(el.value) === String(val)); });
+  const sync = () => { let lit = false; [...chips.children].forEach(b => { const on = !lit && holds(b.preset); b.classList.toggle('on', on); lit ||= on; }); };
+  Object.entries(defs).forEach(([label, v]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.preset = v; b.onclick = () => { apply({ ...defaults, ...v }); sync(); }; chips.append(b); });
+  const [dice, reset] = head.querySelectorAll('button');
+  dice.onclick = () => { apply({ ...defaults, ...random() }); sync(); };
+  reset.onclick = () => { apply(defaults); sync(); };
+  host.append(head, chips); chipSyncs.push(sync); sync();
+}
+
+const WHEN = { pixels: () => $('shape').value === 'pixels', grav: () => +$('grav').value > 0,
+  filter: () => $('filter').value !== '0', duotone: () => $('filter').value === '2' };
+// controls that do nothing in the current state are greyed out
+const OFF = { wall: () => $('body').value === 'solid', gaps: () => $('body').value === 'solid', gapw: () => $('body').value === 'solid' || +$('gaps').value === 0 };
+const syncWhen = () => {
+  document.querySelectorAll('[data-when]').forEach(el => { el.hidden = !WHEN[el.dataset.when](); });
+  Object.entries(OFF).forEach(([id, off]) => $(id).closest('.ctl').classList.toggle('off', off()));
+  chipSyncs.forEach(f => f());
+  $('playBtn').classList.toggle('active', $('drips').checked); $('playBtn').lastChild.textContent = $('drips').checked ? 'Stop' : 'Play';
+};
+document.addEventListener('input', syncWhen); document.addEventListener('change', syncWhen); window.__syncUI = syncWhen; syncWhen();
+
+presetBox('brush', {
+  'Fine dots': { shape: 'pixels', pixel: .012, blob: 1.3, goo: .5, brush: .03 }, Chunky: { shape: 'pixels', pixel: .034, blob: 1.8, goo: .85, brush: .06 },
+  Squares: { shape: 'pixels', round: 0, goo: .2, blob: 1.2 }, Gooey: { shape: 'pixels', blob: 2.2, goo: 1 }, Liquid: { shape: 'smooth' },
+}, setVals, () => ({ brush: rnd(.015, .1), force: rnd(.4, 2), amount: rnd(.4, 1.5), shape: Math.random() < .8 ? 'pixels' : 'smooth', pixel: rnd(.008, .034), blob: rnd(.8, 2.4), round: Math.random() < .7 ? 1 : rnd(), goo: rnd() }),
+  { brush: .04, force: 1, amount: .8, shape: 'pixels', pixel: .021, blob: 1.5, round: 1, goo: .75 }, ['brush', 'force', 'amount', 'shape', 'pixel', 'blob', 'round', 'goo']);
+
+presetBox('animate', {
+  Calm: { swirl: 8, momentum: .5 }, Lively: { swirl: 22, momentum: .75, turb: .15 }, Storm: { swirl: 45, momentum: .95, turb: .8 },
+  Whirlpool: { swirl: 15, momentum: .85, spin: .7 }, Rain: { swirl: 12, momentum: .7, grav: .7 },
+}, setVals, () => ({ swirl: Math.round(rnd(0, 50)), momentum: rnd(.3, 1), turb: Math.random() < .5 ? 0 : rnd(), spin: Math.random() < .6 ? 0 : rnd(-1, 1),
+  grav: Math.random() < .6 ? 0 : rnd(), gravDir: Math.round(rnd(0, 72)) * 5, fade: Math.random() < .7 ? 0 : rnd(0, .4), dripCount: 1 + Math.floor(rnd(0, 5)), dripRate: rnd() }),
+  { swirl: 0, momentum: .5, turb: 0, spin: 0, grav: 0, gravDir: 0, fade: 0, dripCount: 1, dripRate: .4 }, ['swirl', 'momentum', 'turb', 'spin', 'grav', 'gravDir', 'fade']);
+
+// type and edges act on the selected letter, or on every unlocked letter when none is selected
+const targets = () => (selected ? [selected] : letters).filter(l => !l.locked);
+function setType(v) {
+  setVals({ lsize: v.lsize, lrot: v.lrot, font: v.font });
+  targets().forEach(l => { l.size = v.lsize; l.rot = v.lrot; l.font = v.font; });
+  loadFont(v.font).then(renderList); obsDirty = true;
+}
+const FONTS = [...$('font').options].map(o => o.value);
+presetBox('type', { Poster: { lsize: .82 }, Tilted: { lrot: -14 }, Small: { lsize: .3 }, Sideways: { lrot: 90 }, 'Upside down': { lrot: 180 } },
+  v => setType({ font: $('font').value, ...v }), () => ({ font: pick(FONTS), lsize: rnd(.3, .9), lrot: Math.random() < .5 ? 0 : Math.round(rnd(-40, 40)) }),
+  { lsize: .55, lrot: 0 }, ['lsize', 'lrot']);
+
+function setEdge(e) {
+  setVals({ body: e.body, wall: e.wall, gaps: e.gaps, gapw: e.gapw, bleed: e.bleed, lstyle: e.lstyle });
+  targets().forEach(l => { l.body = e.body; l.wall = e.wall; l.gaps = e.gaps; l.gapw = e.gapw; });
+  obsDirty = true;
+}
+presetBox('edges', { Outline: {}, Dashed: { gaps: .4 }, Dotted: { gaps: .95, gapw: .5, wall: .02 }, Stencil: { wall: .03, gaps: .3, gapw: .2 }, Broken: { gaps: .15, gapw: .7 }, Hairline: { wall: .007, gaps: 0 }, Solid: { body: 'solid' }, Leaky: { gaps: .7, gapw: .75, bleed: .5 } },
+  setEdge, () => ({ body: Math.random() < .75 ? 'hollow' : 'solid', wall: rnd(.007, .042), gaps: Math.random() < .25 ? 0 : rnd(.05, 1), gapw: rnd(.1, .9), bleed: Math.random() < .35 ? rnd(.2, .8) : 0, lstyle: Math.random() < .6 ? 'blob' : 'flat' }),
+  { body: 'hollow', wall: .014, gaps: 0, gapw: .35, bleed: 0, lstyle: 'blob' }, ['body', 'wall', 'gaps', 'gapw', 'bleed', 'lstyle']);
+
+presetBox('filter', { Clean: {}, Print: { filter: '1', famt: .5, grain: .25 }, Misprint: { filter: '8', famt: .5, grain: .15 }, Lino: { filter: '10' }, Kaleido: { filter: '6', famt: .5 }, Scan: { filter: '11', grain: .3 } },
+  setVals, () => ({ filter: String(1 + Math.floor(rnd(0, 12))), famt: rnd(.2, 1), grain: Math.random() < .5 ? 0 : rnd(0, .5) }),
+  { filter: '0', famt: .6, grain: 0 }, ['filter', 'famt', 'grain']);
+renderInks();
+
+const addFromInput = () => {
+  const t = $('text').value.trim(); if (!t) { $('text').focus(); return; }
+  const n = letters.length; addLetter(t, .5 + (n % 3) * .04, .5 + (n % 3) * .04); $('text').value = '';
+};
+$('add').onclick = addFromInput;
+$('text').addEventListener('keydown', e => { if (e.key === 'Enter') addFromInput(); });
+$('lsize').oninput = e => { if (selected && !selected.locked) { selected.size = +e.target.value; obsDirty = true; } };
+$('lrot').oninput = e => { if (selected && !selected.locked) { selected.rot = +e.target.value; obsDirty = true; } };
+$('font').onchange = e => { if (selected) selected.font = e.target.value; loadFont(e.target.value).then(renderList); };
+$('centre').onclick = () => { if (selected && !selected.locked) { selected.x = selected.y = .5; obsDirty = true; select(selected, true); } };
+const syncMode = () => {
+  const m = $('mode').value; ptr = null; overlayDirty = true;
+  document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
+  $('modeNote').textContent = { arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and movement. Drag on the canvas to paint.', finish: 'Filter, shape and size of the finished picture. You can still paint.' }[m];
+  document.querySelector('.panel-scroll').scrollTop = 0;
+};
+$('mode').addEventListener('change', syncMode); syncMode();
+$('guides').addEventListener('change', () => { overlayDirty = true; });
+$('canvasShape').addEventListener('change', () => { square = $('canvasShape').value === 'square'; stage.classList.toggle('square', square); });
+// the steps jump to the matching part of the panel; on a phone they live at the top of the panel instead of under the canvas
+const phone = matchMedia('(max-width: 900px)');
+const placeGuide = () => phone.matches ? document.querySelector('.panel-foot').prepend($('guide')) : $('keys').before($('guide'));
+phone.addEventListener('change', placeGuide); placeGuide();
+const pinCanvas = () => {
+  const main = document.querySelector('main');
+  if (!phone.matches) { main.style.top = ''; stage.style.transform = ''; return; }
+  const H = main.offsetHeight, small = Math.round(innerHeight * .36), D = Math.max(0, H - small);   // D: how far the block slides up before it sticks
+  main.style.top = -D + 'px';
+  stage.style.transform = `scale(${Math.min(1, (H - Math.min(scrollY, D) - 24) / stage.offsetWidth)})`;
+  overlayDirty = true;
+};
+addEventListener('scroll', pinCanvas, { passive: true }); addEventListener('resize', pinCanvas); phone.addEventListener('change', pinCanvas); pinCanvas();
+// the guide walks through the six steps one at a time; each step switches to its tab and opens only its box
+const STEPS = [
+  ['arrange', 'g-letters', 'Place your letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
+  ['arrange', 'g-type', 'Choose a typeface', 'Pick a font, then set its size and rotation.'],
+  ['paint', 'g-canvas', 'Pick your colours', 'Choose a palette and how many inks you want.'],
+  ['paint', 'g-ink', 'Set the brush', 'Try a preset, then adjust size and texture.'],
+  ['paint', 'g-motion', 'Paint, or press Play', 'Drag on the canvas, or let Play shoot puffs of ink.'],
+  ['finish', 'g-output', 'Finish and export', 'Add a filter, choose shape and size, press Export.'],
+];
+let stepAt = -1;   // -1: not started
+const showStep = () => {
+  const [small, b, span] = $('stepText').children, st = STEPS[stepAt];
+  small.textContent = st ? `${stepAt + 1}/${STEPS.length}` : ''; b.textContent = st ? st[2] : 'New here?'; span.textContent = st ? st[3] : 'Six steps from letter to picture.';
+  $('stepBack').hidden = stepAt < 1; $('stepNext').textContent = !st ? 'Start' : stepAt === STEPS.length - 1 ? 'Done' : 'Next';
+};
+const goStep = i => {
+  stepAt = i >= STEPS.length ? -1 : i; showStep();
+  const st = STEPS[stepAt]; if (!st) return;
+  $('mode').value = st[0]; $('mode').dispatchEvent(new Event('change'));
+  document.querySelectorAll('.accordion-collapse').forEach(c => {   // only this step's box is open (set directly: no half-finished fold animations)
+    const open = c.id === st[1], btn = c.closest('.accordion-item').querySelector('.accordion-button');
+    c.classList.remove('collapsing'); c.style.height = ''; c.classList.toggle('show', open); btn.classList.toggle('collapsed', !open); btn.setAttribute('aria-expanded', open);
+  });
+  const item = $(st[1]).closest('.accordion-item'), head = item.querySelector('.accordion-button');
+  item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  head.classList.remove('nudge'); void head.offsetWidth; head.classList.add('nudge');
+};
+$('stepNext').onclick = () => goStep(stepAt + 1); $('stepBack').onclick = () => goStep(stepAt - 1); showStep();
+$('body').onchange = e => { if (selected) { selected.body = e.target.value; obsDirty = true; } };
+$('wall').oninput = e => { if (selected) { selected.wall = +e.target.value; obsDirty = true; } };
+$('gaps').oninput = e => { if (selected) { selected.gaps = +e.target.value; obsDirty = true; } };
+$('gapw').oninput = e => { if (selected) { selected.gapw = +e.target.value; obsDirty = true; } };
+// Match paper is a link, not a one-off copy: while it's on, the letter colour follows the paper exactly
+const setMatch = v => { letterMatch = v; $('matchPaper').classList.toggle('active', v); if (v) $('letterColor').value = $('paperCustom').value; };
+$('matchPaper').onclick = () => setMatch(!letterMatch);
+$('letterColor').addEventListener('input', () => setMatch(false));
+const removeSelected = () => { if (!selected || selected.locked) return; letters.splice(letters.indexOf(selected), 1); obsDirty = true; select(null); };
+$('delAll').onclick = () => { for (let i = letters.length - 1; i >= 0; i--) if (!letters[i].locked) letters.splice(i, 1); obsDirty = true; select(null); };
+// Space toggles Freeze
+addEventListener('keydown', e => {
+  const a = document.activeElement;
+  if (e.code !== 'Space' || e.repeat || a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && a.type !== 'range' && a.type !== 'checkbox')) return;
+  e.preventDefault(); if (a !== document.body) a.blur();   // so Space doesn't also press a focused button
+  $('pause').click();
+});
+addEventListener('keydown', e => {
+  if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey) return;
+  if (e.key.toLowerCase() === 'r') { $('record').click(); return; }
+  const m = { b: 'paint', v: 'arrange', f: 'finish' }[e.key.toLowerCase()];
+  if (m) { $('mode').value = m; $('mode').dispatchEvent(new Event('change')); }
+});
+addEventListener('keydown', e => {
+  const a = document.activeElement;
+  if ((e.key !== 'Delete' && e.key !== 'Backspace') || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'range' && a.type !== 'checkbox')) return;
+  e.preventDefault();
+  // with a letter selected in Arrange, the key removes that letter; otherwise Backspace wipes the ink
+  if (selected && $('mode').value === 'arrange') removeSelected();
+  else if (e.key === 'Backspace') $('clear').click();
+});
+// Record: click to start, click again (or wait for the chosen length) to finish; the video is saved straight away
+$('record').onclick = () => {
+  if (rec) { rec.stop(); return; }
+  if (!window.MediaRecorder) { alert('This browser cannot record video.'); return; }
+  const S = 1080, c = document.createElement('canvas'), x = c.getContext('2d'); c.width = c.height = S;
+  const type = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
+  const mr = new MediaRecorder(c.captureStream(60), { mimeType: type, videoBitsPerSecond: 12e6 }), chunks = [], t0 = performance.now(), limit = +$('recLength').value;
+  const label = $('record').lastChild, clock = () => { const t = Math.floor((performance.now() - t0) / 1000); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, { type })); a.download = 'ink-video.' + (type.includes('mp4') ? 'mp4' : 'webm');
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  rec = {
+    draw() {   // the round canvas has see-through corners; video has no transparency, so it sits on a sheet of paper colour
+      x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, S, S); x.drawImage(canvas, 0, 0, S, S);
+      label.textContent = clock();
+      if (limit && performance.now() - t0 >= limit * 1000) rec.stop();
+    },
+    stop() { rec = null; mr.stop(); $('record').classList.remove('active'); label.textContent = ''; },
+  };
+  mr.start(); $('record').classList.add('active'); label.textContent = '0:00';
+};
+$('pause').onclick = () => {
+  // Freeze only stops the simulation. Colours, letters, texture, filters and painting all stay editable.
+  frozen = !frozen;
+  $('pause').firstChild.textContent = frozen ? 'Unfreeze ' : 'Freeze '; $('pause').classList.toggle('active', frozen);
+  stage.classList.toggle('frozen', frozen);
+  $('frozenBadge').style.display = frozen ? 'block' : 'none';
+};
+$('clear').onclick = () => {
+  for (const t of [dye.read, dye.write, dye2.read, dye2.write, vel.read, vel.write, prs.read, prs.write]) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.clear(gl.COLOR_BUFFER_BIT); }
+  jets.length = 0;
+};
+function snapshot(S) {
+  const old = canvas.width;
+  canvas.width = canvas.height = S; render();
+  const p = new Promise(r => canvas.toBlob(r, 'image/png'));
+  canvas.width = canvas.height = old; render();
+  return p;
+}
+$('export').onclick = async () => {
+  // round: a circle with transparent corners. rect: the circle centred on a sheet of paper colour at the platform's size.
+  const [spec, name] = $('exportSize').value.split('|'), [kind, dim] = spec.split(':');
+  let blob;
+  if (kind === 'round') blob = await snapshot(+dim);
+  else {
+    const [w, h] = dim.split('x').map(Number), D = Math.min(2048, Math.round(Math.min(w, h) * .86));
+    const art = await createImageBitmap(await snapshot(D)), c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d'); x.fillStyle = $('paperCustom').value; x.fillRect(0, 0, w, h); x.drawImage(art, (w - D) / 2, (h - D) / 2);
+    blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ink-${name}-${dim}.png`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+addEventListener('resize', () => { overlayDirty = true; });
+
+/* ---------- opening scene ---------- */
+function loadFont(v) {
+  const [w, fam] = v.split('|');
+  return document.fonts.load(`${w} 48px ${fam}`).then(() => { obsDirty = true; }, () => {});
+}
+loadFont($('font').value);
+addLetter('A'); select(null);
+[1, 2, 0, 3].forEach(i => fireJet(i));
+window.__ink = { letters, fireJet, snapshot, applyPalette };
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

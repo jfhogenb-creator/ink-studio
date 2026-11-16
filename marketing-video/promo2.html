@@ -1,0 +1,279 @@
+<!doctype html>
+<!--
+  Ink Studio promo 2: storyboard page (three tabs, open edges, Play, Match paper, light and dark, Record, gallery).
+  It loads the real app (../index.html) into a 1600x900 frame scaled to 1920x1080, drives it step by step
+  (fake clock, scripted clicks and brush strokes) and lays titles on top. render.mjs captures one screenshot
+  per frame and ffmpeg turns them into the video. Edit the SCENES / timeline below to change the film.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ink Studio promo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Geist:wght@400;500&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #09090b; color: #f4f4f5; font-family: Geist, system-ui, sans-serif; }
+  #app { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; border: 0; transform: scale(1.2); transform-origin: 0 0; }
+  #caption { position: absolute; left: 0; width: 1433px; bottom: 54px; text-align: center; }
+  #caption .n { font: 500 18px "Geist Mono", monospace; color: #ff5a1f; letter-spacing: .14em; }
+  #caption h2 { font: 800 60px/1.05 "Bricolage Grotesque", sans-serif; letter-spacing: -.02em; margin: 10px 0 10px; }
+  #caption p { font-size: 24px; color: #a1a1aa; margin: 0; }
+  #cursor { position: absolute; width: 26px; height: 26px; margin: -13px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.5); background: rgba(255,255,255,.12); left: 700px; top: 500px; }
+  #pulse { position: absolute; width: 26px; height: 26px; margin: -13px; border-radius: 50%; border: 2px solid #ff5a1f; opacity: 0; }
+  #caption.light h2 { color: #121215; } #caption.light p { color: #5d5d66; }   /* while the app is in light mode */
+  #bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: rgba(255,255,255,.06); }
+  #bar i { display: block; height: 100%; width: 0; background: #ff5a1f; }
+  #gallery { position: absolute; inset: 0; display: none;
+    background: radial-gradient(1100px 700px at 22% 18%, rgba(255,90,31,.2), transparent 60%), radial-gradient(1000px 800px at 78% 92%, rgba(80,110,255,.2), transparent 60%), #09090b; }
+  #gallery .gtitle { position: absolute; left: 120px; top: 50%; width: 560px; transform: translateY(-50%); }
+  #gallery .n { font: 500 18px "Geist Mono", monospace; color: #ff5a1f; letter-spacing: .14em; }
+  #gallery h2 { font: 800 104px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.03em; margin: 18px 0 22px; }
+  #gallery p { font-size: 28px; line-height: 1.35; color: #a1a1aa; margin: 0; }
+  #gallery .grid { position: absolute; left: 760px; top: 112px; display: grid; grid-template-columns: repeat(5, 196px); gap: 24px; }
+  #gallery .grid img { width: 196px; height: 196px; display: block; filter: drop-shadow(0 14px 30px rgba(0,0,0,.55)); }
+  /* vertical version: caption on top, canvas in the middle, the panel underneath */
+  .v, .v body { width: 1080px; height: 1920px; }
+  .v #app { width: 720px; height: 1280px; transform: scale(1.5); }
+  .v #caption { width: 1080px; top: 64px; bottom: auto; }
+  .v #caption h2 { font-size: 72px; margin: 14px 40px 14px; }
+  .v #caption p { font-size: 30px; margin: 0 60px; }
+  .v #caption .n { font-size: 22px; }
+  .v #gallery .gtitle { left: 0; width: 1080px; top: 130px; transform: none; text-align: center; }
+  .v #gallery h2 { font-size: 120px; }
+  .v #gallery p { font-size: 34px; }
+  .v #gallery .grid { left: 64px; top: 600px; grid-template-columns: repeat(4, 220px); gap: 24px; }
+  .v #gallery .grid img { width: 220px; height: 220px; }
+  .v #card h1 { font-size: 172px; }
+  .v #card p { font-size: 40px; }
+  #card { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 22px; text-align: center;
+    background: radial-gradient(1100px 700px at 22% 18%, rgba(255,90,31,.22), transparent 60%), radial-gradient(1000px 800px at 78% 92%, rgba(80,110,255,.22), transparent 60%), #09090b; }
+  #card .logo { width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(from 210deg, #ff5a1f, #ffb38f, #1d2f9e, #ff5a1f); }
+  #card h1 { font: 800 168px/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.035em; margin: 0; }
+  #card p { font-size: 36px; color: #a1a1aa; margin: 0; }
+</style>
+</head>
+<body>
+<iframe id="app"></iframe>
+<div id="caption"><span class="n"></span><h2></h2><p></p></div>
+<div id="pulse"></div><div id="cursor"></div>
+<div id="bar"><i></i></div>
+<div id="gallery">
+  <div class="gtitle"><span class="n">ALWAYS UNIQUE</span><h2>No two alike</h2><p>Every letter, palette and stroke<br>gives a different result.</p></div>
+  <div class="grid"></div>
+</div>
+<div id="card"><span class="logo"></span><h1>Ink Studio</h1><p>Living ink portraits for your profile.</p></div>
+
+<script>
+const V = location.search.includes('vertical');                 // promo.html?vertical = 1080x1920 for stories and reels
+const W = V ? 1080 : 1920, H = V ? 1920 : 1080, S = V ? 1.5 : 1.2;
+const FPS = 30, GALLERY = 1450, OUTRO = GALLERY + 190, TOTAL = OUTRO + 116;   // about 58 seconds; the gallery runs from GALLERY to OUTRO
+document.documentElement.classList.toggle('v', V);
+const app = document.getElementById('app');
+let w, d, $, stage;
+
+/* ---- runs inside the app before its own code: a clock we advance by hand, and repeatable randomness ---- */
+function shim() {
+  let now = 0; const q = [];
+  window.requestAnimationFrame = cb => q.push(cb);
+  performance.now = () => now;
+  window.__clock = { step(ms) { now += ms; q.splice(0).forEach(cb => cb(now)); } };
+  // Record is shown in the film, but nothing is really recorded or downloaded
+  window.MediaRecorder = class { static isTypeSupported() { return true; } start() {} stop() {} };
+  let seed = 20261116;
+  Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const APP_CSS = `*, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  #guide, #keys { display: none !important; } ` + (V ? `
+  body { flex-direction: column !important; overflow: hidden !important; height: 100vh !important; }
+  main { flex: none !important; height: 850px !important; padding: 0 !important; display: block !important; position: relative !important; top: 0 !important; }
+  #toolbar { position: absolute !important; top: 216px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; } #frozenBadge { top: 262px !important; }
+  #stage { width: 560px !important; margin: 274px auto 0 !important; transform: none !important; }   /* the app's own phone layout (pinned, shrinking canvas) is switched off for the film */
+  aside { width: auto !important; flex: 1 1 auto !important; margin: 0 14px 14px !important; min-height: 0 !important; overflow: hidden !important; }
+  .brand { display: none !important; } .mode-tabs { padding-top: 14px !important; }
+  .panel-scroll { overflow-y: auto !important; }` : `#stage { width: 640px !important; margin-top: -70px !important; }`);
+
+/* ---- helpers that operate the app ---- */
+const q = sel => [...d.querySelectorAll(sel)];
+const key = k => w.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, code: k === ' ' ? 'Space' : '', cancelable: true }));
+const setVal = (id, v, ev = 'input') => { const el = $(id); if (el.type === 'checkbox') el.checked = v; else el.value = v; el.dispatchEvent(new w.Event(ev, { bubbles: true })); };
+function focus(mode, gid) {   // show one side of the panel with one box open
+  setVal('mode', mode, 'change');
+  q(`.accordion-item[data-side=${mode}]`).forEach(it => {
+    const body = it.querySelector('.accordion-collapse'), open = body.id === gid;
+    body.classList.toggle('show', open); it.querySelector('.accordion-button').classList.toggle('collapsed', !open);
+    if (V) it.style.display = open ? '' : 'none';   // little room under the canvas: show only the box in use
+  });
+  d.querySelector('.panel-scroll').scrollTop = 0;
+}
+const pt = (x, y) => { const r = stage.getBoundingClientRect(); return [r.left + x * r.width, r.top + y * r.height]; };
+const pointer = (type, x, y) => { const [cx, cy] = pt(x, y); stage.dispatchEvent(new w.PointerEvent(type, { clientX: cx, clientY: cy, pointerId: 1, bubbles: true })); };
+
+/* ---- timeline ---- */
+let off = 0;   // added to every time below; lets a scene be inserted without renumbering what follows
+const acts = [], strokes = [], ramps = [], scenes = [];
+const act = (at, run) => acts.push({ at: at + off, run });
+const click = (at, sel, i = 0) => acts.push({ at: at + off, target: () => q(sel)[i], run: el => el && el.click() });
+const pickOption = (at, id, i) => acts.push({ at: at + off, target: () => $(id), run: () => setVal(id, $(id).options[i].value, 'change') });
+const stroke = (a, b, ink, path) => strokes.push({ a: a + off, b: b + off, ink, path });
+const ramp = (a, b, id, v0, v1) => ramps.push({ a: a + off, b: b + off, id, v0, v1 });
+const scene = (a, b, title, sub) => scenes.push({ a: a + off, b: b + off, title, sub, n: String(scenes.length + 1).padStart(2, '0') });
+const arc = (cx, cy, r, a0, a1, wob = 0) => t => { const a = a0 + (a1 - a0) * t, rr = r * (1 + wob * Math.sin(t * 9)); return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)]; };
+const pickFont = i => setVal('font', $('font').options[i].value, 'change');
+const chip = name => `[data-presets=${name}] .chips button`;
+
+function buildTimeline() {
+  const playing = (count, rate, fade) => { setVal('dripCount', count); setVal('dripRate', rate); setVal('fade', fade); };
+  // 1 · letter: typeface, tilt, then open the edges so ink streams in
+  scene(90, 300, 'Start with a letter', 'Pick a typeface, then open its edges so the ink streams in.');
+  act(92, () => { focus('arrange', 'g-type'); setVal('drips', true, 'change'); setVal('dripCycle', true, 'change'); playing(2, .6, .15); q('.lrow')[0].click(); });
+  pickOption(112, 'font', 6); pickOption(134, 'font', 9); pickOption(156, 'font', 10);
+  ramp(164, 180, 'lrot', 0, -12); ramp(184, 198, 'lrot', -12, 0);
+  act(202, () => focus('arrange', 'g-body'));
+  click(218, chip('edges'), 1);
+  ramp(230, 262, 'gaps', .4, .72);
+  click(282, chip('edges'), 3);
+
+  // 2 · ink: paint
+  scene(300, 480, 'Paint with living ink', 'A real fluid simulation under your brush.');
+  act(302, () => { focus('paint', 'g-canvas'); setVal('drips', false, 'change'); setVal('fade', .05); });
+  stroke(310, 352, '1', arc(.5, .5, .36, 3.6, 5.6, .08));
+  stroke(358, 398, '2', arc(.5, .5, .37, .2, 2.3, .1));
+  stroke(404, 438, '3', arc(.52, .5, .28, 2.6, 4.4, .12));
+  click(452, '#palettes .pal', 2); click(470, '#palettes .pal', 3);
+
+  // 3 · colour
+  scene(480, 640, 'One tap recolours everything', 'Presets, Shuffle, or mix up to five inks.');
+  click(494, '#surprise'); click(514, '#palettes .pal', 0); click(536, '#palettes .pal', 2);
+  click(558, '#inkCount + .segc button', 4); click(580, '#palettes .pal', 1);
+  stroke(596, 630, '5', arc(.5, .52, .24, 5.4, 7.6, .1));
+
+  // 4 · play
+  scene(640, 790, 'Press Play', 'Puffs of ink, currents, whirlpools and gravity.');
+  act(642, () => focus('paint', 'g-motion'));
+  click(658, '#playBtn');
+  act(659, () => playing(2, .6, .2));
+  click(684, chip('animate'), 2); click(720, chip('animate'), 3); click(756, chip('animate'), 4);
+  [685, 721, 757].forEach(f => act(f, () => playing(2, .6, .3)));   // presets reset the fade; keep the canvas from flooding
+
+  // 5 · match paper: the letter takes the paper colour and becomes a hole in the ink
+  scene(790, 930, 'Match paper', 'Carve your letter out of the ink.');
+  act(792, () => { focus('arrange', 'g-letters'); setVal('grav', 0); setVal('spin', 0); setVal('turb', .15); setVal('swirl', 30); playing(3, .85, .06); q('[data-presets=edges] .tools button')[1].click(); });
+  click(818, '#matchPaper');
+  act(846, () => focus('arrange', 'g-body'));
+  click(862, chip('edges'), 6);                                   // Solid: the whole letter becomes empty space
+  act(863, () => playing(3, .85, .06));
+
+  // 6 · light and dark
+  scene(930, 1110, 'Light or dark', 'Ink darkens on light paper and glows on dark.');
+  act(932, () => { focus('paint', 'g-canvas'); playing(1, .45, .1); });
+  click(952, '#themeToggle');
+  act(953, () => { $('classics').click(); setVal('amount', .8); });   // show the built-in light palettes, or the next palette click would bring dark paper back
+  click(974, '#palettes .pal', 1);
+  stroke(986, 1018, '1', arc(.5, .5, .34, 2.8, 5.0, .1));
+  stroke(1024, 1052, '3', arc(.5, .5, .3, .1, 2.0, .1));
+  click(1066, '#palettes .pal', 2); click(1088, '#palettes .pal', 0);
+
+  // 7 · look
+  scene(1110, 1260, 'Dots, liquid, print', 'Change the whole look without repainting.');
+  act(1112, () => { focus('paint', 'g-ink'); setVal('swirl', 24); playing(2, .6, .12); });
+  click(1126, chip('brush'), 1); click(1150, chip('brush'), 2); click(1174, chip('brush'), 4); click(1194, chip('brush'), 0);
+  act(1202, () => focus('finish', 'g-filter'));
+  click(1216, chip('filter'), 1); click(1232, chip('filter'), 2); click(1250, chip('filter'), 0);
+
+  // 8 · finish: back to dark, square, record, freeze
+  scene(1260, 1440, 'Record it, freeze it, export it', 'Video or PNG, round or square, sized for every platform.');
+  act(1262, () => focus('finish', 'g-output'));
+  act(1264, () => { $('themeToggle').click(); $('classics').click(); q('#palettes .pal')[0].click(); setVal('amount', .85); playing(3, .8, .05); });
+  click(1284, '#canvasShape + .segc button', 1);                                  // square: the corners open up
+  click(1300, '#record');
+  stroke(1310, 1344, '2', t => [.07 + .86 * t, .09 + .1 * Math.sin(t * 3.14)]);    // paint along the top edge, corner to corner
+  stroke(1350, 1380, '4', t => [.92 - .84 * t, .9 - .08 * Math.sin(t * 3.14)]);    // and back along the bottom
+  click(1394, '#record');
+  click(1410, '#canvasShape + .segc button', 0);                                  // back to round
+  click(1426, '#pause');
+}
+
+/* ---- per-frame ---- */
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, clamp01 = t => Math.min(1, Math.max(0, t));
+const cur = { x: W * .37, y: H * .48, from: [0, 0], to: [0, 0], t0: -1, t1: -1 };
+let pulseAt = -99;
+const el = id => document.getElementById(id);
+function travel(f, at, x, y, lead = 14) { if (f === at - lead) { cur.from = [cur.x, cur.y]; cur.to = [x, y]; cur.t0 = f; cur.t1 = at; } }
+
+window.__tick = f => {
+  // cursor heads for the next click or stroke
+  for (const a of acts) if (a.target && f === a.at - 14) { const t = a.target(), r = t && t.getBoundingClientRect(); if (r && r.width) travel(f, a.at, (r.left + r.width / 2) * S, (r.top + r.height / 2) * S); }
+  for (const s of strokes) { const [x, y] = pt(...s.path(0)); travel(f, s.a, x * S, y * S, 8); }
+  if (f >= cur.t0 && f <= cur.t1) { const t = ease(clamp01((f - cur.t0) / Math.max(1, cur.t1 - cur.t0))); cur.x = cur.from[0] + (cur.to[0] - cur.from[0]) * t; cur.y = cur.from[1] + (cur.to[1] - cur.from[1]) * t; }
+  // actions
+  for (const a of acts) if (a.at === f) { a.run(a.target ? a.target() : null); if (a.target) pulseAt = f; }
+  for (const r of ramps) if (f >= r.a && f <= r.b) setVal(r.id, r.v0 + (r.v1 - r.v0) * ease((f - r.a) / (r.b - r.a)));
+  for (const s of strokes) {
+    if (f < s.a || f > s.b) continue;
+    const [x, y] = s.path((f - s.a) / (s.b - s.a));
+    if (f === s.a) { key(s.ink); pointer('pointerdown', x, y); } else pointer('pointermove', x, y);
+    if (f === s.b) pointer('pointerup', x, y);
+    const [cx, cy] = pt(x, y); cur.x = cx * S; cur.y = cy * S;
+  }
+  // two simulation steps per video frame (the app runs at 60 steps a second)
+  w.__clock.step(1000 / 60); w.__clock.step(1000 / 60);
+
+  // overlays
+  const c = el('cursor'), p = el('pulse'), pk = clamp01((f - pulseAt) / 12);
+  c.style.left = p.style.left = cur.x + 'px'; c.style.top = p.style.top = cur.y + 'px';
+  c.style.opacity = f > 92 && f < GALLERY ? 1 : 0;
+  c.style.transform = `scale(${f - pulseAt < 4 ? .78 : 1})`;
+  p.style.opacity = f - pulseAt < 12 && f > 92 ? 1 - pk : 0; p.style.transform = `scale(${1 + pk * 2.2})`;
+  const sc = scenes.find(s => f >= s.a && f < s.b), cap = el('caption');
+  if (sc) {
+    const tin = ease(clamp01((f - sc.a) / 14)), tout = clamp01((sc.b - f) / 8);
+    cap.querySelector('.n').textContent = `${sc.n} / ${String(scenes.length).padStart(2, '0')}`;
+    cap.querySelector('h2').textContent = sc.title; cap.querySelector('p').textContent = sc.sub;
+    cap.classList.toggle('light', d.documentElement.dataset.bsTheme === 'light');
+    cap.style.opacity = Math.min(tin, tout); cap.style.transform = `translateY(${(1 - tin) * 26}px)`;
+  } else cap.style.opacity = 0;
+  el('bar').firstElementChild.style.width = (f / (TOTAL - 1) * 100) + '%';
+  // gallery of finished examples: tiles pop in one after another
+  const gal = el('gallery'), g = f - GALLERY;
+  if (g >= 0 && f < OUTRO + 30) {
+    gal.style.display = 'block'; gal.style.opacity = ease(clamp01(g / 14));
+    gal.querySelector('.gtitle').style.opacity = ease(clamp01((g - 4) / 16));
+    gal.querySelector('.gtitle').style.transform = `translateY(calc(${V ? '0%' : '-50%'} + ${(1 - ease(clamp01((g - 4) / 16))) * 30}px))`;
+    [...gal.querySelectorAll('img')].forEach((im, i) => { const t = ease(clamp01((g - 12 - i * 3.2) / 14)); im.style.opacity = t; im.style.transform = `scale(${.55 + .45 * t}) rotate(${(1 - t) * -10}deg)`; });
+    gal.querySelector('.grid').style.transform = `translateY(${-g * .12}px)`;
+  } else gal.style.display = 'none';
+  // title cards: intro lifts off, outro settles in
+  const card = el('card'), intro = 1 - clamp01((f - 58) / 26), outro = clamp01((f - OUTRO) / 26), o = Math.max(intro, outro);
+  card.style.opacity = o; card.style.display = o > 0 ? 'grid' : 'none';
+  const k = f < 500 ? ease(clamp01(f / 26)) : ease(clamp01((f - OUTRO - 2) / 26));
+  card.querySelector('h1').style.transform = `translateY(${(1 - k) * 40}px)`; card.querySelector('h1').style.opacity = k;
+  card.querySelector('.logo').style.transform = `scale(${.6 + .4 * k}) rotate(${f * 1.2}deg)`;
+  card.querySelector('p').style.opacity = f < 500 ? ease(clamp01((f - 14) / 22)) : ease(clamp01((f - OUTRO - 20) / 22));
+  card.querySelector('p').textContent = f < 500 ? 'Living ink portraits for your profile.' : 'Make your mark.';
+  return true;
+};
+
+/* ---- boot: load the app with the clock shim, put it in dark mode, get it moving ---- */
+(async () => {
+  let html = await (await fetch('../index.html?' + Date.now())).text();
+  html = html.replace('<head>', `<head><script>(${shim})()<\/script><style>${APP_CSS}</style>`);
+  app.srcdoc = html; await new Promise(r => { app.onload = r; });
+  w = app.contentWindow; d = w.document; $ = id => d.getElementById(id); stage = $('stage'); stage.setPointerCapture = () => {};
+  await Promise.all([d.fonts.ready, document.fonts.ready]); await new Promise(r => setTimeout(r, 800));
+  $('themeToggle').click();                                   // dark mode; shows the dark built-in palettes
+  q('#palettes .pal')[0].click();                             // Neon
+  setVal('guides', false, 'change'); setVal('swirl', 24); setVal('momentum', .82); setVal('brush', .055); setVal('amount', .6); setVal('fade', .04);
+  q('.lrow button')[2].click(); $('text').value = 'X'; $('add').click();   // the film's letter is an X
+  $('clear').click();
+  // the gallery: finished pictures from ../examples/ and the square J set in ../juriaan-j/, interleaved
+  const pick = (dir, names) => names.map(n => `../${dir}/${n}.png`);
+  const ex = pick('examples', ['01-neon-a', '03-ember-amp', '05-aurora-s', '02-riso-r', '09-moonlight-j', '13-jungle-w', '04-bauhaus-7', '11-candy-q', '15-random-e', '06-botanic-k', '14-blush-5', '08-sunset-q']);
+  const js = pick('juriaan-j', ['01-black-carved', '07-light-liquid', '08-black-squares', '03-light-black-line', '06-black-liquid', '05-grey-dotted-line', '02-black-white-line', '10-black-tilted']);
+  const files = []; while (ex.length || js.length) { files.push(...ex.splice(0, 3), ...js.splice(0, 2)); }
+  await Promise.all(files.map(src => { const im = new Image(); im.src = src; el('gallery').querySelector('.grid').append(im); return im.decode().catch(() => console.warn('missing', src)); }));
+  buildTimeline();
+  for (let i = 0; i < 20; i++) w.__clock.step(1000 / 60);    // settle
+  window.__total = TOTAL; window.__fps = FPS; window.__ready = true;
+})();
+</script>
+</body>
+</html>

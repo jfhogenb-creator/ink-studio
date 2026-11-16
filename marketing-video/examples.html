@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Ink Studio examples: renders one finished picture per recipe below.
+  make-examples.mjs calls window.__make(i) for each recipe and saves the PNG it returns into ../examples/.
+  Each recipe loads a fresh copy of the app, sets it up differently, lets the ink run, and exports 1024 px.
+-->
+<html lang="en">
+<head><meta charset="utf-8"><title>Ink Studio examples</title></head>
+<body style="margin:0;background:#111">
+<script>
+// [file name, letter, font (0-8), dark, palette (0-7 built-in for that mode, or 'r0'-'r7' = randomized), inks, edge, match paper, style, brush, filter, currents, square]
+const EDGE = { Outline: 0, Dashed: 1, Dotted: 2, Stencil: 3, Broken: 4, Hairline: 5, Solid: 6, Leaky: 7 };
+const BRUSH = { 'Fine dots': 0, Chunky: 1, Squares: 2, Gooey: 3, Liquid: 4 };
+const FILTER = { Print: 1, Misprint: 2, Lino: 3, Kaleido: 4, Scan: 5 };
+const FLOW = { Calm: 0, Lively: 1, Storm: 2, Whirlpool: 3, Rain: 4 };
+const RECIPES = [
+  ['01-neon-a',      'A', 0, 1, 0,    4, 'Dashed',   0, 'blob', null,        null,       'Lively',    0],
+  ['02-riso-r',      'R', 2, 0, 1,    4, 'Solid',    1, 'blob', 'Chunky',    null,       'Storm',     0],
+  ['03-ember-amp',   '&', 6, 1, 2,    3, 'Outline',  0, 'flat', 'Liquid',    null,       'Whirlpool', 0],
+  ['04-bauhaus-7',   '7', 5, 0, 2,    4, 'Solid',    0, 'flat', 'Squares',   null,       'Calm',      1],
+  ['05-aurora-s',    'S', 1, 1, 3,    5, 'Dotted',   0, 'blob', 'Fine dots', null,       'Storm',     0],
+  ['06-botanic-k',   'K', 7, 0, 3,    3, 'Hairline', 1, 'blob', 'Gooey',     null,       'Lively',    0],
+  ['07-arcade-m',    'M', 0, 1, 4,    5, 'Solid',    1, 'blob', 'Chunky',    'Misprint', 'Storm',     1],
+  ['08-sunset-q',    '?', 4, 0, 4,    4, 'Broken',   0, 'blob', null,        'Print',    'Rain',      0],
+  ['09-moonlight-j', 'J', 8, 1, 5,    2, 'Outline',  0, 'flat', 'Liquid',    null,       'Calm',      0],
+  ['10-mono-g',      'G', 3, 0, 5,    2, 'Stencil',  0, 'blob', 'Fine dots', 'Lino',     'Lively',    0],
+  ['11-candy-q',     'Q', 0, 1, 6,    4, 'Solid',    1, 'blob', 'Gooey',     null,       'Whirlpool', 0],
+  ['12-citrus-b',    'B', 6, 0, 6,    5, 'Dashed',   0, 'blob', 'Squares',   null,       'Storm',     1],
+  ['13-jungle-w',    'W', 5, 1, 7,    3, 'Leaky',    0, 'blob', null,        'Kaleido',  'Lively',    0],
+  ['14-blush-5',     '5', 1, 0, 7,    3, 'Solid',    1, 'flat', 'Liquid',    null,       'Whirlpool', 0],
+  ['15-random-e',    'E', 0, 1, 'r1', 5, 'Dotted',   0, 'blob', 'Chunky',    'Scan',     'Rain',      0],
+  ['16-random-z',    'Z', 4, 0, 'r3', 4, 'Solid',    1, 'blob', 'Fine dots', null,       'Storm',     0],
+  ['17-random-bang', '!', 5, 1, 'r5', 2, 'Outline',  0, 'flat', 'Gooey',     'Misprint', 'Calm',      1],
+  ['18-random-n',    'N', 7, 0, 'r2', 5, 'Outline',  0, 'flat', null,        null,       'Whirlpool', 0],
+  ['19-neon-o',      'O', 1, 1, 0,    1, 'Solid',    1, 'blob', 'Squares',   null,       'Storm',     0],
+  ['20-studio-x',    'X', 3, 0, 0,    4, 'Hairline', 0, 'blob', 'Liquid',    'Print',    'Lively',    0],
+];
+window.__count = RECIPES.length;
+
+function shim() {   // runs inside the app first: a hand-cranked clock and randomness seeded per example
+  let now = 0; const q = [];
+  window.requestAnimationFrame = cb => q.push(cb);
+  performance.now = () => now;
+  window.__clock = { step(ms) { now += ms; q.splice(0).forEach(cb => cb(now)); } };
+  let seed = 7919 * (+window.name || 1);
+  Math.random = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+let source;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+window.__make = async i => {
+  const [name, text, font, dark, pal, inkCount, edge, match, style, brush, filter, flow, square] = RECIPES[i];
+  source ??= (await (await fetch('../index.html?' + Date.now())).text()).replace('<head>', `<head><script>(${shim})()<\/script><style>* { transition: none !important; animation: none !important; }</style>`);
+  document.querySelector('iframe')?.remove();
+  const frame = document.createElement('iframe'); frame.name = String(i + 1); frame.style.cssText = 'width:1400px;height:900px;border:0';
+  frame.srcdoc = source; document.body.append(frame); await new Promise(r => { frame.onload = r; });
+  const w = frame.contentWindow, d = w.document, $ = id => d.getElementById(id), q = sel => [...d.querySelectorAll(sel)];
+  const stage = $('stage'); stage.setPointerCapture = () => {};
+  const setVal = (id, v, ev = 'input') => { const el = $(id); if (el.type === 'checkbox') el.checked = v; else el.value = v; el.dispatchEvent(new w.Event(ev, { bubbles: true })); };
+  const chip = (box, n) => q(`[data-presets=${box}] .chips button`)[n].click();
+  const key = k => w.dispatchEvent(new w.KeyboardEvent('keydown', { key: k }));
+  const pointer = (type, x, y) => { const r = stage.getBoundingClientRect(); stage.dispatchEvent(new w.PointerEvent(type, { clientX: r.left + x * r.width, clientY: r.top + y * r.height, pointerId: 1, bubbles: true })); };
+  const step = n => { for (let k = 0; k < n; k++) w.__clock.step(1000 / 60); };
+  await d.fonts.ready; await sleep(300);
+
+  setVal('mode', 'paint', 'change');   // the app opens on the Letter tab; strokes only paint on Ink
+  // colour
+  if (dark) $('themeToggle').click();
+  if (square) q('#canvasShape + .segc button')[1].click();
+  let card = pal; if (typeof pal === 'string') { $('surprise').click(); card = +pal.slice(1); }
+  if (card >= 4) { $('palNext').click(); card -= 4; }
+  q('#inkCount + .segc button')[inkCount - 1].click();
+  q('#palettes .pal')[card].click();
+  // letter
+  q('.lrow button')[2].click();                                  // remove the starter letter
+  setVal('font', $('font').options[font].value, 'change'); setVal('lsize', text === '@' || text === 'W' || text === 'M' ? .5 : .62);
+  $('text').value = text; $('add').click();
+  chip('edges', EDGE[edge]); setVal('lstyle', match ? 'flat' : style, 'change');   // a matched letter is cut out crisply
+  if (match) $('matchPaper').click();
+  // look and movement
+  if (brush) chip('brush', BRUSH[brush]);
+  if (filter) chip('filter', FILTER[filter]);
+  chip('animate', FLOW[flow]);
+  setVal('drips', true, 'change'); setVal('dripCycle', true, 'change'); const lots = !dark || match;   // a cut-out letter only shows when there is plenty of ink round it
+  setVal('dripCount', lots ? 2 : 1); setVal('dripRate', lots ? .7 : .55); setVal('fade', dark ? (match ? .05 : .12) : .04); setVal('amount', dark ? (match ? .6 : .42) : .75); setVal('brush', .06);   // glowing ink on dark paper builds up fast, so use less of it
+  $('clear').click();
+  await d.fonts.load(`700 40px ${$('font').value.split('|')[1]}`, text).catch(() => {}); await sleep(250); setVal('lrot', 0);   // make sure the typeface is drawn
+
+  // let it run: puffs of ink plus three brush sweeps, each in the next ink
+  const R = () => w.Math.random();
+  for (let s = 0; s < 3; s++) {
+    step(70);
+    key(String(1 + (s % inkCount)));
+    const a0 = R() * 6.28, da = (R() < .5 ? -1 : 1) * (1.6 + R() * 1.6), rad = .2 + R() * .18, N = 34;
+    for (let k = 0; k <= N; k++) { const a = a0 + da * k / N, x = .5 + rad * Math.cos(a), y = .5 + rad * Math.sin(a); pointer(k ? 'pointermove' : 'pointerdown', x, y); step(2); }
+    pointer('pointerup', .5, .5);
+  }
+  step(match ? 200 : 110);
+
+  const blob = await w.__ink.snapshot(1024);
+  const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+  return { name, data };
+};
+window.__ready = true;
+</script>
+</body>
+</html>
