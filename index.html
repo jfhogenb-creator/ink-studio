@@ -435,7 +435,7 @@
               <option value="dark">Dark</option>
             </select>
           </div>
-          <p class="note">Ink darkens light paper and glows on dark paper. A palette under Ink brings its own paper colour with it.</p>
+          <p class="note">Ink darkens light paper and glows on dark paper. Palettes under Ink change the inks only, never the paper.</p>
         </fieldset></div></div>
       </div>
 
@@ -1451,8 +1451,10 @@ function renderInks() {
 }
 $('inkCustom').addEventListener('input', () => { inks[slot] = $('inkCustom').value; renderInks(); markPalette(null); });
 let palList = [], palPage = 0, palSel = null;
-function applyPalette(p) {
-  inks = withFifth(p.inks); $('paperCustom').value = p.paper; if (!letterMatch) $('letterColor').value = p.letter;
+// A palette clicked in the app changes the inks and nothing else: paper and letter colour belong to the Canvas and Letter tabs.
+// (Scripts that call this without inksOnly, like the example renderer, still get the palette's own paper and letter colour.)
+function applyPalette(p, inksOnly) {
+  inks = withFifth(p.inks); if (!inksOnly) { $('paperCustom').value = p.paper; if (!letterMatch) $('letterColor').value = p.letter; }
   haloSlot = Math.floor(Math.random() * inkCount);   // stain: a random ink from the new tray
   renderInks(); markPalette(p);
 }
@@ -1460,9 +1462,10 @@ function markPalette(p) { palSel = p || null; drawPalettes(); }
 function drawPalettes() {   // four cards at a time
   $('palettes').textContent = '';
   palList.slice(palPage * 4, palPage * 4 + 4).forEach(p => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pal' + (p === palSel ? ' sel' : ''); b.title = p.name; b.style.background = p.paper;
-    b.innerHTML = withFifth(p.inks).slice(0, inkCount).map(c => `<i style="background:${c}"></i>`).join('') + `<span style="color:${p.letter}">${p.name}</span>`;
-    b.onclick = () => applyPalette(p, p); $('palettes').append(b);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pal' + (p === palSel ? ' sel' : ''); b.title = p.name;
+    const paper = $('paperCustom').value; b.style.background = paper;   // each card shows its inks on your paper
+    b.innerHTML = withFifth(p.inks).slice(0, inkCount).map(c => `<i style="background:${c}"></i>`).join('') + `<span style="color:${isDark(paper) ? '#f4f4f5' : '#14151a'}">${p.name}</span>`;
+    b.onclick = () => applyPalette(p, true); $('palettes').append(b);
   });
   $('palPrev').disabled = palPage === 0; $('palNext').disabled = (palPage + 1) * 4 >= palList.length;
 }
@@ -1472,7 +1475,7 @@ $('palNext').onclick = () => { palPage++; drawPalettes(); };
 let showingClassics = true;
 renderPalettes(classics(), 0);
 $('inkCount').addEventListener('change', () => { inkCount = +$('inkCount').value; renderInks(); drawPalettes(); });
-$('paperCustom').addEventListener('input', syncPaper);
+$('paperCustom').addEventListener('input', () => { syncPaper(); drawPalettes(); });
 addEventListener('keydown', e => {   // 1-4 pick the ink to paint with
   const a = document.activeElement;
   if ((/INPUT|SELECT|TEXTAREA/.test(a.tagName) && a.type !== 'range') || e.metaKey || e.ctrlKey) return;
