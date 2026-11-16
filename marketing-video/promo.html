@@ -241,7 +241,7 @@ window.__tick = f => {
   w = app.contentWindow; d = w.document; $ = id => d.getElementById(id); stage = $('stage'); stage.setPointerCapture = () => {};
   await Promise.all([d.fonts.ready, document.fonts.ready]); await new Promise(r => setTimeout(r, 800));
   if (d.documentElement.dataset.bsTheme !== 'dark') $('themeToggle').click();   // the app in night mode
-  setVal('paperTone', 'dark', 'change');                      // dark paper; shows the dark built-in palettes
+  setVal('paperCustom', '#0b0b12'); setVal('letterColor', '#f4f4f5');   // dark paper; shows the dark built-in palettes
   q('#palettes .pal')[0].click();                             // Neon
   setVal('guides', false, 'change'); setVal('swirl', 24); setVal('momentum', .82); setVal('brush', .055); setVal('amount', .6); setVal('fade', .04); setVal('gaps', .35);
   q('.lrow button')[2].click(); $('text').value = 'X'; $('add').click(); setVal('mode', 'paint', 'change');   // the film's letter is an X

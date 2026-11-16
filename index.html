@@ -444,7 +444,7 @@
 
   <div class="mode-tabs">
     <select id="mode" class="seg">
-      <option value="canvas" selected title="Your paper: its size and colour. Change them any time. (C)">Canvas</option>
+      <option value="canvas" selected title="Your paper: its size, colour and texture. Change them any time. (C)">Canvas</option>
       <option value="arrange" title="Add letters and shape them. Drag a letter on the canvas to place it. (V)">Letter</option>
       <option value="paint" title="Colours, brush and movement. Drag on the canvas to paint. (B)">Ink</option>
       <option value="animate" title="How the ink moves, and what Play does. (A)">Animate</option>
@@ -481,18 +481,25 @@
       </div>
 
       <div class="accordion-item" data-side="canvas">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-paper"><span class="step"></span>Paper<small class="hint">colour, light or dark</small></button></h2>
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-paper"><span class="step"></span>Paper<small class="hint">colour, texture</small></button></h2>
         <div id="g-paper" class="accordion-collapse collapse"><div class="accordion-body"><fieldset>
           <div class="ctl">Colour
             <span><input type="color" class="cp" id="paperCustom" value="#f4efe6" title="Paper colour"></span>
           </div>
-          <div class="ctl">Tone
-            <select id="paperTone" class="seg" title="Light paper: ink darkens it. Dark paper: ink glows on it.">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
+          <div data-presets="brush"></div>
+          <div class="ctl">Texture
+            <select id="shape" class="seg">
+              <option value="pixels" title="Ink is drawn as round dots that fuse together">Dots</option>
+              <option value="smooth" title="Ink is drawn as soft, continuous liquid">Liquid</option>
             </select>
           </div>
-          <p class="note">Ink darkens light paper and glows on dark paper. Palettes under Ink change the inks only, never the paper.</p>
+          <label class="ctl" data-when="pixels">Dot size <input type="range" class="form-range" id="pixel" min="0.008" max="0.034" step="0.001" value="0.021" data-top="50"></label>
+          <details class="more" data-when="pixels"><summary>Fine-tune</summary><div>
+            <label class="ctl" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
+            <label class="ctl" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
+            <label class="ctl" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
+          </div></details>
+          <p class="note">Inks show in their own colour on any paper. Palettes under Ink change the inks only.</p>
         </fieldset></div></div>
       </div>
 
@@ -526,24 +533,12 @@
       </div>
 
       <div class="accordion-item" data-side="paint">
-        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, amount, texture</small></button></h2>
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#g-ink"><span class="step"></span>Brush<small class="hint">size, amount, force</small></button></h2>
         <div id="g-ink" class="accordion-collapse collapse"><div class="accordion-body"><fieldset class="compose">
-          <div data-presets="brush"></div>
           <label class="ctl">Brush size <input type="range" class="form-range" id="brush" min="0.008" max="0.2" step="0.001" value="0.04"></label>
           <label class="ctl">Ink amount <input type="range" class="form-range" id="amount" min="0.1" max="2" step="0.05" value="0.8"></label>
-          <div class="ctl">Texture
-            <select id="shape" class="seg">
-              <option value="pixels" title="Ink is drawn as round dots that fuse together">Dots</option>
-              <option value="smooth" title="Ink is drawn as soft, continuous liquid">Liquid</option>
-            </select>
-          </div>
-          <label class="ctl" data-when="pixels">Dot size <input type="range" class="form-range" id="pixel" min="0.008" max="0.034" step="0.001" value="0.021" data-top="50"></label>
-          <details class="more"><summary>Fine-tune</summary><div>
-            <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
-            <label class="ctl" data-when="pixels" title="How far each dot reaches into its neighbours">Spread <input type="range" class="form-range" id="blob" min="0.3" max="3" step="0.05" value="1.5"></label>
-            <label class="ctl" data-when="pixels" title="From square dots to round dots">Roundness <input type="range" class="form-range" id="round" min="0" max="1" step="0.01" value="1"></label>
-            <label class="ctl" data-when="pixels" title="How readily neighbouring dots fuse into one shape">Merge <input type="range" class="form-range" id="goo" min="0" max="1" step="0.01" value="0.75"></label>
-          </div></details>
+          <label class="ctl" title="How hard a stroke pushes the ink around">Force <input type="range" class="form-range" id="force" min="0.1" max="3" step="0.05" value="1"></label>
+          <p class="note">The brush size also sets the width of Smudge and the Eraser.</p>
         </fieldset></div></div>
       </div>
 
@@ -857,19 +852,14 @@ uniform sampler2D uObs; uniform vec2 uTexel, uHalf; uniform float uSquare;
 float rim(vec2 uv){ vec2 p = abs(uv - .5); return uSquare > .5 ? max(p.x * .5 / uHalf.x, p.y * .5 / uHalf.y) : length(p); }
 float solid(vec2 uv){ return max(step(0.492, rim(uv)), step(0.5, texture(uObs, uv).r)); }
 `;
-const DYE_FN = `    uniform sampler2D uDist; uniform vec3 uHaloInk; uniform float uHaloOn, uReach, uSoft, uLBlob, uHaloAmt, uSpeck;
-    // ink near a letter keeps its density but takes the halo colour
+const DYE_FN = `    uniform sampler2D uDist; uniform float uLBlob;
     uniform sampler2D uDye2; uniform vec3 uInk[5];
-    // two ink textures hold the amounts of up to five tray inks (four in the first, the fifth in the second); the palette turns them into colour here
-    vec3 dyeAt(vec2 uv){
-      vec4 a = max(texture(uDye, uv), 0.);
-      vec3 d = a.x * uInk[0] + a.y * uInk[1] + a.z * uInk[2] + a.w * uInk[3] + max(texture(uDye2, uv).r, 0.) * uInk[4];
-      if (uHaloOn > .5) {
-        float t = (1. - smoothstep(uReach * (1. - uSoft), uReach + 1e-4, texture(uDist, uv).r)) * uHaloAmt;
-        t *= mix(1., step(.5, fract(sin(dot(floor(uv * 64.), vec2(127.1, 311.7))) * 43758.5453)), uSpeck);
-        d = mix(d, max(d.r, max(d.g, d.b)) * uHaloInk, t);
-      }
-      return d;
+    // Two ink textures hold the amounts of up to five tray inks (four in the first, the fifth in the second).
+    // Here they become colour: rgb is the inks' own colours added up by amount, a is the total amount of ink.
+    // Nothing is tinted by the paper: where there is enough ink you see exactly the colour in the tray.
+    vec4 dyeAt(vec2 uv){
+      vec4 a = max(texture(uDye, uv), 0.); float e = max(texture(uDye2, uv).r, 0.);
+      return vec4(a.x * uInk[0] + a.y * uInk[1] + a.z * uInk[2] + a.w * uInk[3] + e * uInk[4], a.x + a.y + a.z + a.w + e);
     }
 `;
 const BLEED_FN = `uniform sampler2D uDist; uniform float uTime;
@@ -986,14 +976,15 @@ const SRC = {
     ${DYE_FN}
     void main(){
       vec2 cu = (floor(gl_FragCoord.xy) + .5) / uCells; float e = .25 / uCells;
-      o = vec4((dyeAt(cu) * 2. + dyeAt(cu + vec2(e, e)) + dyeAt(cu + vec2(-e, e)) + dyeAt(cu + vec2(e, -e)) + dyeAt(cu - vec2(e, e))) / 6.,
-        uLBlob * (1. - smoothstep(0., .6 / uCells, texture(uDist, cu).r)));   // alpha: how much of this cell is letter
+      o = (dyeAt(cu) * 2. + dyeAt(cu + vec2(e, e)) + dyeAt(cu + vec2(-e, e)) + dyeAt(cu + vec2(e, -e)) + dyeAt(cu - vec2(e, e))) / 6.;
     }`,
+  cellsL: `uniform float uCells, uLBlob; uniform sampler2D uDist;   // per dot: how much of it is letter
+    void main(){ vec2 cu = (floor(gl_FragCoord.xy) + .5) / uCells; o = vec4(uLBlob * (1. - smoothstep(0., .6 / uCells, texture(uDist, cu).r))); }`,
   display: `vec2 sUv; vec2 screenUv(){ return vUv; }
 #define vUv sUv
-    uniform sampler2D uDye, uCell; uniform vec3 uPaper, uLetter, uFCol;
+    uniform sampler2D uDye, uCell, uCellL; uniform vec3 uPaper, uLetter, uFCol;
     uniform float uMode, uPx, uShape, uCells, uBlob, uGoo, uRound, uSolid, uFilter, uFAmt, uGrain;
-    vec3 inkCol(vec3 d){ return uMode < .5 ? uPaper * exp(-d) : uPaper + (1. - uPaper) * (1. - exp(-d)); }
+    vec3 inkCol(vec4 d){ return mix(uPaper, d.rgb / max(d.a, 1e-4), 1. - exp(-d.a * 2.4)); }   // thin ink lets the paper through; thick ink is the ink's own colour
     ${DYE_FN}
     float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     // ink layer + letters at one point of the picture
@@ -1008,16 +999,16 @@ const SRC = {
         for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) {
           vec2 c = id + vec2(i, j) + .5; ivec2 ci = ivec2(floor(c));
           if (ci.x < 0 || ci.y < 0 || ci.x >= int(ceil(uCells)) || ci.y >= int(ceil(uCells))) continue;
-          vec4 ct = texelFetch(uCell, ci, 0); vec3 d = ct.rgb;
-          float m = max(d.r, max(d.g, d.b));
-          float r = max(.5 * uBlob * sqrt(1. - exp(-max(m - .1, 0.) * .6)), .62 * sqrt(ct.a));   // ink blob, or letter blob
+          vec4 ct = texelFetch(uCell, ci, 0); float la = texelFetch(uCellL, ci, 0).r;
+          float m = ct.a * 1.6;
+          float r = max(.5 * uBlob * sqrt(1. - exp(-max(m - .1, 0.) * .6)), .62 * sqrt(la));   // ink blob, or letter blob
           vec2 q = abs(g - c);
           float dist = pow(pow(q.x, n) + pow(q.y, n), 1. / n) + 1e-4;
           float w = pow(r / dist, k) * smoothstep(2.5, 1.6, dist);
           field += w;
           // sharpened weight: each blob keeps its own colour instead of blurring into its neighbours
           float wc = pow(min(w, 1e3), 3.); wsum += wc;
-          acc += mix(uSolid > .5 ? inkCol(d / max(m, 1e-4) * 2.6) : inkCol(d), uLetter, smoothstep(.3, .4, ct.a)) * wc;
+          acc += mix(ct.rgb / max(ct.a, 1e-4), uLetter, smoothstep(.3, .4, la)) * wc;   // a dot is its ink's exact colour
         }
         float fw = clamp(fwidth(field), 1e-3, .5);
         col = mix(uPaper, acc / max(wsum, 1e-9), smoothstep(1. - fw, 1. + fw, field));
@@ -1102,7 +1093,7 @@ const vel = pair(SIM, SIM, gl.RG16F, gl.RG);
 const prs = pair(SIM, SIM, gl.R16F, gl.RED);
 const dye = pair(DYE, DYE, gl.RGBA16F, gl.RGBA);
 const dye2 = pair(DYE, DYE, gl.R16F, gl.RED);   // the fifth ink
-const cellT = fbo(128, 128, gl.RGBA16F, gl.RGBA);
+const cellT = fbo(128, 128, gl.RGBA16F, gl.RGBA), cellL = fbo(128, 128, gl.R16F, gl.RED);
 const curlT = fbo(SIM, SIM, gl.R16F, gl.RED), divT = fbo(SIM, SIM, gl.R16F, gl.RED);
 const simTexel = [1 / SIM, 1 / SIM];
 
@@ -1200,11 +1191,6 @@ function updateDistance() {
   for (let y = 0; y < DN; y++) for (let x = 0; x < DN; x++) distFlip[(DN - 1 - y) * DN + x] = d[y * DN + x] / DN;
   gl.bindTexture(gl.TEXTURE_2D, distTex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, DN, DN, 0, gl.RED, gl.FLOAT, distFlip);
-}
-function haloInk() {
-  const c = hex(inks[haloSlot]);
-  const a = $('blend').value === 'ink' ? c.map(v => -Math.log(Math.max(v, .04))) : c;
-  const m = Math.max(...a, 1e-4); return a.map(v => v / m);
 }
 function hit(x, y) {
   for (let i = letters.length - 1; i >= 0; i--) {
@@ -1307,8 +1293,7 @@ const hexHsv = h => { const [r, g, b] = hex(h), mx = Math.max(r, g, b), d = mx -
 let inks = ['#14151a', '#1d2f9e', '#c8102e', '#00897b', '#e3a008'], inkCount = 4, slot = 0, haloSlot = 2, letterMatch = false;
 function inkVec(i, k) { const v = [0, 0, 0, 0, 0]; v[i] = +$('amount').value * k; return v; }
 function inkUniform() {   // inks beyond the chosen count borrow the colour of a visible ink, so the drawing shows exactly that many colours
-  const ink = $('blend').value === 'ink';
-  return [0, 1, 2, 3, 4].flatMap(i => hex(inks[i < inkCount ? i : i % inkCount]).map(v => ink ? -Math.log(Math.max(v, .04)) : v * 1.6));
+  return [0, 1, 2, 3, 4].flatMap(i => hex(inks[i < inkCount ? i : i % inkCount]));   // the inks' plain RGB
 }
 const splats = [], jets = [];
 function splat(x, y, dx, dy, color, r, vr) { splats.push({ x, y, dx, dy, color, r, vr: vr || r }); }
@@ -1385,9 +1370,9 @@ function letterShown() {
 function render() {
   const halo = { uLBlob: $('lstyle').value === 'blob' ? 1 : 0, 'uInk[0]': inkUniform(), uDye2: dye2.read.tex, uDist: distTex, uHaloOn: 0, uReach: 0, uSoft: 0, uHaloAmt: 0, uSpeck: 0, uHaloInk: [0, 0, 0] };
   const pixels = $('shape').value !== 'smooth', cells = 1 / +$('pixel').value;
-  if (pixels) run(P.cells, cellT, { uDye: dye.read.tex, uCells: cells, ...halo });
-  run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: letterShown(),
-    uMode: $('blend').value === 'ink' ? 0 : 1, uPx: 1.5 * 2 * half[0] / canvas.width,
+  if (pixels) { run(P.cells, cellT, { uDye: dye.read.tex, uCells: cells, ...halo }); run(P.cellsL, cellL, { uCells: cells, ...halo }); }
+  run(P.display, null, { uDye: dye.read.tex, uCell: cellT.tex, uCellL: cellL.tex, ...halo, uPaper: hex($('paperCustom').value), uLetter: letterShown(),
+    uPx: 1.5 * 2 * half[0] / canvas.width,
     uShape: $('shape').value === 'smooth' ? 0 : 1, uCells: 1 / +$('pixel').value, uBlob: +$('blob').value,
     uGoo: +$('goo').value, uRound: +$('round').value, uSolid: 1,
     uFilter: +$('filter').value, uFAmt: +$('famt').value, uFCol: hex($('fcol').value), uGrain: +$('grain').value });
@@ -1475,14 +1460,18 @@ const SUN = '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6"/><path d="M8
 const MOON = '<svg viewBox="0 0 16 16"><path d="M13 9.6A5.5 5.5 0 0 1 6.4 3 5.5 5.5 0 1 0 13 9.6z"/></svg>';
 // One light/dark switch for the whole app: it sets the paper, the way ink behaves on it (darkens on light,
 // glows on dark) and the look of the interface. Picking a dark or light paper flips it too.
-const lastPaper = { light: '#f4efe6', dark: '#0b0b12' };
 const isDark = h => { const c = hex(h); return .299 * c[0] + .587 * c[1] + .114 * c[2] < .4; };
+let paperWasDark = null;
 function syncPaper() {
   const paper = $('paperCustom').value, dark = isDark(paper);
-  $('blend').value = dark ? 'light' : 'ink'; lastPaper[dark ? 'dark' : 'light'] = paper;
-  document.documentElement.dataset.paper = dark ? 'dark' : 'light'; if ($('paperTone').value !== document.documentElement.dataset.paper) $('paperTone').value = document.documentElement.dataset.paper;
+  document.documentElement.dataset.paper = dark ? 'dark' : 'light';
   if (letterMatch && $('letterColor').value !== paper) $('letterColor').value = paper;
-  const chip = $('paperChip'); if (chip) { chip.style.background = paper; chip.title = 'Paper colour'; }
+  if (dark !== paperWasDark) {   // the paper crossed from light to dark or back
+    const was = paperWasDark; paperWasDark = dark;
+    // a letter still in its default colour swaps to the default that shows on this paper
+    if (!letterMatch && ['#14151a', '#f4f4f5'].includes($('letterColor').value.toLowerCase())) $('letterColor').value = dark ? '#f4f4f5' : '#14151a';
+    if (was !== null && typeof showingClassics !== 'undefined' && showingClassics) renderPalettes(classics(), -1);   // built-in palettes that suit it
+  }
 }
 // The sun/moon button only changes the look of the app (day or night). It has nothing to do with the paper.
 let night = false; try { night = (localStorage.getItem('ink-night') ?? String(matchMedia('(prefers-color-scheme: dark)').matches)) === 'true'; } catch {}
@@ -1490,16 +1479,6 @@ const setNight = v => { night = v; document.documentElement.dataset.bsTheme = v 
   $('themeToggle').innerHTML = v ? MOON : SUN; $('themeToggle').title = v ? 'Night mode is on. Switch the app to day.' : 'Day mode is on. Switch the app to night.'; };
 $('themeToggle').onclick = () => { setNight(!night); try { localStorage.setItem('ink-night', night); } catch {} };
 setNight(night);
-// Paper: Light or Dark flips the paper and keeps the inks readable on it
-$('paperTone').onchange = () => {
-  const toDark = $('paperTone').value === 'dark'; if (toDark === isDark($('paperCustom').value)) return;
-  $('paperCustom').value = lastPaper[toDark ? 'dark' : 'light'];
-  // keep every ink readable on the new paper: lift near-black inks on dark, deepen near-white inks on light
-  inks = inks.map(h => { const [hu, sa, va] = hexHsv(h); return toDark ? (va < .45 ? hsvHex(hu, Math.min(sa, .5), .92) : h) : (va > .85 && sa < .3 ? hsvHex(hu, Math.max(sa, .4), .3) : h); });
-  if (!letterMatch) $('letterColor').value = toDark ? '#f4f4f5' : '#14151a';
-  renderInks(); markPalette(null);
-  if (showingClassics) renderPalettes(classics(), -1);   // the built-in palettes follow the mode
-};
 const shuffleInks = () => { const vis = inks.slice(0, inkCount); vis.push(vis.shift()); inks = [...vis, ...inks.slice(inkCount)]; renderInks(); markPalette(null); };   // same tray, inks swapped round
 // palettes come with four inks; a fifth is derived from the second one so it belongs to the same family
 const withFifth = a => { if (a.length >= 5) return a.slice(0, 5); const [h, sa, va] = hexHsv(a[1]); return [...a, hsvHex(h + 150, Math.max(sa, .45), Math.min(1, Math.max(va, .55)))]; };
@@ -1660,7 +1639,7 @@ const syncMode = () => {
   const m = lastMode = $('mode').value; ptr = null; overlayDirty = true;
   setTool(m === 'arrange' ? 'move' : tool === 'move' ? 'brush' : tool, true);   // Move belongs to Letter; every other tab paints
   document.querySelectorAll('.accordion-item[data-side]').forEach(el => { el.hidden = el.dataset.side !== m; });
-  $('modeNote').textContent = { canvas: 'Your paper: its size and colour. Change them any time.', arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
+  $('modeNote').textContent = { canvas: 'Your paper: its size, colour and texture. Change them any time.', arrange: 'Add letters and shape them. Drag a letter on the canvas to place it.', paint: 'Colours, brush and filter. Drag on the canvas to paint.', animate: 'How the ink moves, and what Play shoots in. You can keep painting.' }[m];
   document.querySelector('.panel-scroll').scrollTop = 0;
 };
 // tools and tabs stay in step: Move belongs to the Letter tab, the other three to Ink
@@ -1705,7 +1684,7 @@ const STEPS = [
   ['arrange', 'g-letters', 'Place your letter', 'Letter', 'Type a letter or word, press Add, then drag it on the canvas.'],
   ['arrange', 'g-type', 'Choose a typeface', 'Typeface', 'Pick a font, then set its size and rotation.'],
   ['paint', 'g-canvas', 'Pick your colours', 'Colours', 'Choose a palette and how many inks you want.'],
-  ['paint', 'g-ink', 'Paint', 'Paint', 'Set the brush, then drag on the canvas.'],
+  ['paint', 'g-ink', 'Paint', 'Paint', 'Set the brush size and ink amount, then drag on the canvas.'],
   ['animate', 'g-play', 'Press Play', 'Animate', 'Let Play shoot puffs of ink, and set how it moves.'],
   ['finish', null, 'Export', 'Export', 'Add a filter, then save a PNG or record a video.'],
 ];
